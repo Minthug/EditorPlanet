@@ -31,4 +31,9 @@ public class Reference{
     @JoinColumn(name = "member_id", nullable = false)
     private Member author;
 
+    private double averageRating;
+
+    private int ratingCount;
+
+
 }
