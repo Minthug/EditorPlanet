@@ -1,9 +1,6 @@
 package setting.SettingServer.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -24,6 +21,14 @@ public class Reference{
 
     private String thumbnail;
 
-    private String video;
+    private String videoUrl;
+
+    private int viewCount;
+
+    private Boolean isDeleted;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id", nullable = false)
+    private Member author;
 
 }
