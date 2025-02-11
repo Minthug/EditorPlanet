@@ -38,5 +38,9 @@ public class Rating extends BaseTime {
         }
     }
 
+    public void updateScore(int newScore) {
+        validateScore(newScore);
+        this.score = newScore;
+    }
 
 }
