@@ -1,16 +1,13 @@
-package setting.SettingServer.service.response;
+package setting.SettingServer.service.request;
 
-import org.springframework.cglib.core.Local;
 import setting.SettingServer.dto.MemberResponseDto;
 import setting.SettingServer.entity.Reference;
 
-import java.time.LocalDateTime;
-
-public record ReferenceCreateResponse(Long memberId, String title, String thumbnail, String videoUrl,
+public record ReferenceCreateRequest(Long memberId, String title, String thumbnail, String videoUrl,
                                       Double averageRating, Integer ratingCount, MemberResponseDto member) {
 
-    public static ReferenceCreateResponse from(Reference reference) {
-        return new ReferenceCreateResponse(
+    public static ReferenceCreateRequest from(Reference reference) {
+        return new ReferenceCreateRequest(
                 reference.getId(),
                 reference.getTitle(),
                 reference.getThumbnail(),

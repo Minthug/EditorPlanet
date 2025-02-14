@@ -5,13 +5,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import setting.SettingServer.common.BaseTime;
 
 @Entity
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Reference{
+public class Reference extends BaseTime {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,5 +36,26 @@ public class Reference{
 
     private int ratingCount;
 
+    public void update(String title, String thumbnail, String videoUrl) {
+        this.title = title;
+        this.thumbnail = thumbnail;
+        this.videoUrl = videoUrl;
+    }
 
+    public void incrementViewCount() {
+        this.viewCount++;
+    }
+
+    // SoftDelete
+    public void delete() {
+        this.isDeleted = true;
+    }
+
+    public void updateAverageRating(double averageRating) {
+        this.averageRating = averageRating;
+    }
+
+    public void updateRatingCount(int ratingCount) {
+        this.ratingCount = ratingCount;
+    }
 }
