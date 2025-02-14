@@ -3,6 +3,7 @@ package setting.SettingServer.service;
 import com.google.api.gax.rpc.UnauthenticatedException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setting.SettingServer.common.exception.UnauthorizedException;
@@ -13,6 +14,7 @@ import setting.SettingServer.repository.ReferenceRepository;
 import setting.SettingServer.service.request.ReferenceCreateRequest;
 import setting.SettingServer.service.request.ReferenceUpdateRequest;
 import setting.SettingServer.service.response.ReferenceCreateResponse;
+import setting.SettingServer.service.response.ReferenceResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -54,4 +56,26 @@ public class ReferenceService {
                 request.videoUrl()
         );
     }
+
+    @Transactional
+    public void deleteReference(Long referenceId, Long memberId) {
+
+        Reference reference = referenceRepository.findById(referenceId)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 게시글입니다"));
+
+        if (!reference.getAuthor().getUserId().equals(memberId)) {
+            throw new UnauthorizedException("게시글 수정 권한이 없습니다");
+        }
+
+        referenceRepository.delete(reference);
+    }
+
+    public ReferenceResponse getReference(Long referenceId) {
+
+        Reference reference = referenceRepository.findById(referenceId)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 게시글입니다"));
+
+        return ReferenceResponse.from(reference);
+    }
+
 }
