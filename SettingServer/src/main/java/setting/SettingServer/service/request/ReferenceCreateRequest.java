@@ -1,10 +1,10 @@
 package setting.SettingServer.service.request;
 
-import setting.SettingServer.dto.MemberResponseDto;
+import setting.SettingServer.dto.MemberResponse;
 import setting.SettingServer.entity.Reference;
 
 public record ReferenceCreateRequest(Long memberId, String title, String thumbnail, String videoUrl,
-                                      Double averageRating, Integer ratingCount, MemberResponseDto member) {
+                                      Double averageRating, Integer ratingCount, MemberResponse member) {
 
     public static ReferenceCreateRequest from(Reference reference) {
         return new ReferenceCreateRequest(
@@ -14,7 +14,7 @@ public record ReferenceCreateRequest(Long memberId, String title, String thumbna
                 reference.getVideoUrl(),
                 reference.getAverageRating(),
                 reference.getRatingCount(),
-                MemberResponseDto.of(reference.getAuthor())
+                MemberResponse.of(reference.getAuthor())
         );
     }
 

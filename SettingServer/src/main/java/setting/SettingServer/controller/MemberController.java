@@ -5,11 +5,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import setting.SettingServer.dto.MemberDto;
-import setting.SettingServer.dto.MemberResponseDto;
+import setting.SettingServer.dto.MemberResponse;
 import setting.SettingServer.dto.MemberUpdateDto;
 import setting.SettingServer.service.MemberService;
 
@@ -37,8 +35,8 @@ public class MemberController {
     @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> editMember(@PathVariable(value = "id") Long id,
                                         @Valid @ModelAttribute MemberUpdateDto dto) {
-        MemberResponseDto memberResponseDto = memberService.editMember(id, dto);
-        return ResponseEntity.status(HttpStatus.OK).body(memberResponseDto);
+        MemberResponse response = memberService.editMember(id, dto);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @DeleteMapping("/{id}")

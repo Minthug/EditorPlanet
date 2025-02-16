@@ -12,10 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setting.SettingServer.common.exception.UserNotFoundException;
-import setting.SettingServer.dto.MemberDto;
-import setting.SettingServer.dto.MemberResponseDto;
-import setting.SettingServer.dto.MemberUpdateDto;
-import setting.SettingServer.dto.ProfileDto;
+import setting.SettingServer.dto.*;
 import setting.SettingServer.entity.Member;
 import setting.SettingServer.repository.MemberRepository;
 
@@ -72,7 +69,7 @@ public class MemberService {
     }
 
     @Transactional
-    public MemberResponseDto editMember(Long id, MemberUpdateDto updateDto) {
+    public MemberResponse editMember(Long id, MemberUpdateDto updateDto) {
         log.info("Editing member with id: {} ", id);
         Member member = findMemberById(id);
 
@@ -85,7 +82,7 @@ public class MemberService {
             updateRedisMemberCache(member);
 
             log.info("Member updated successfully. Member url: {}", member.getImageUrl());
-            return MemberResponseDto.of(member);
+            return MemberResponse.of(member);
         } catch (Exception e) {
             log.error("Failed to update member", e);
             throw new RuntimeException("Failed to update member", e);
