@@ -4,6 +4,7 @@ import com.google.api.gax.rpc.UnauthenticatedException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setting.SettingServer.common.exception.UnauthorizedException;
@@ -14,6 +15,7 @@ import setting.SettingServer.repository.ReferenceRepository;
 import setting.SettingServer.service.request.ReferenceCreateRequest;
 import setting.SettingServer.service.request.ReferenceUpdateRequest;
 import setting.SettingServer.service.response.ReferenceCreateResponse;
+import setting.SettingServer.service.response.ReferenceListResponse;
 import setting.SettingServer.service.response.ReferenceResponse;
 
 @Service
@@ -78,4 +80,12 @@ public class ReferenceService {
         return ReferenceResponse.from(reference);
     }
 
+    public Page<ReferenceListResponse> getReferenceList(Pageable pageable) {
+        return referenceRepository.findAll(pageable).map(ReferenceListResponse::from);
+    }
+
+    public Page<ReferenceListResponse> getMemberReferenceList(Long memberId, Pageable pageable) {
+        return referenceRepository.findByAuthor_IdAndIsDeletedFalse(memberId, pageable)
+                .map(ReferenceListResponse::from);
+    }
 }
