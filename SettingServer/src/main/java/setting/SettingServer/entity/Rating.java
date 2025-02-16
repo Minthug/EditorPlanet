@@ -3,15 +3,13 @@ package setting.SettingServer.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Value;
+import lombok.*;
 import setting.SettingServer.common.BaseTime;
 
 @Entity
 @Getter
 @NoArgsConstructor
+@Builder
 @AllArgsConstructor
 @Table(name = "ratings", uniqueConstraints = {@UniqueConstraint(columnNames = {"reference_id", "member_id"})})
 public class Rating extends BaseTime {

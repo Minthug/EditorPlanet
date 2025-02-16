@@ -4,6 +4,6 @@ import setting.SettingServer.repository.ScoreCount;
 
 import java.util.List;
 
-public record ReferenceStatisticsResponse(Double averageScore, List<ScoreCount> distribution, Long totalCount) {
+public record RatingStatisticsResponse(Double averageScore, List<ScoreCount> distribution, Long totalCount) {
 
 }

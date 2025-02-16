@@ -1,6 +1,5 @@
 package setting.SettingServer.service;
 
-import com.google.api.gax.rpc.UnauthenticatedException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -14,7 +13,6 @@ import setting.SettingServer.repository.MemberRepository;
 import setting.SettingServer.repository.ReferenceRepository;
 import setting.SettingServer.service.request.ReferenceCreateRequest;
 import setting.SettingServer.service.request.ReferenceUpdateRequest;
-import setting.SettingServer.service.response.ReferenceCreateResponse;
 import setting.SettingServer.service.response.ReferenceListResponse;
 import setting.SettingServer.service.response.ReferenceResponse;
 
