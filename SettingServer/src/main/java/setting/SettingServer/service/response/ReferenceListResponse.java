@@ -1,7 +1,6 @@
 package setting.SettingServer.service.response;
 
 import setting.SettingServer.dto.MemberResponse;
-import setting.SettingServer.dto.MemberResponseDto;
 import setting.SettingServer.entity.Reference;
 
 public record ReferenceListResponse(Long id, String title, String thumbnail, Double averageRating, MemberResponse response) {

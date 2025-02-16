@@ -69,14 +69,14 @@ public class MemberService {
     }
 
     @Transactional
-    public MemberResponse editMember(Long id, MemberUpdateDto updateDto) {
+    public MemberResponse editMember(Long id, MemberUpdateRequest request) {
         log.info("Editing member with id: {} ", id);
         Member member = findMemberById(id);
 
         try {
             validateMemberPermission(member);
-            String encryptedPassword = encryptedPasswordIfProvider(updateDto.getPassword());
-            updateMemberDetails(member, updateDto, encryptedPassword);
+            String encryptedPassword = encryptedPasswordIfProvider(request.password());
+            updateMemberDetails(member, request, encryptedPassword);
             memberRepository.save(member);
 
             updateRedisMemberCache(member);
@@ -108,9 +108,9 @@ public class MemberService {
         redisTemplate.delete(cacheKey);
     }
 
-    private void updateMemberDetails(Member member, MemberUpdateDto updateDto, String encryptedPassword) {
+    private void updateMemberDetails(Member member, MemberUpdateRequest request, String encryptedPassword) {
         member.updateMember(
-                updateDto.getName(),
+                request.name(),
                 encryptedPassword
         );
     }

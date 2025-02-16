@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import setting.SettingServer.dto.MemberDto;
 import setting.SettingServer.dto.MemberResponse;
-import setting.SettingServer.dto.MemberUpdateDto;
+import setting.SettingServer.dto.MemberUpdateRequest;
 import setting.SettingServer.service.MemberService;
 
 import java.util.List;
@@ -34,8 +34,8 @@ public class MemberController {
 
     @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> editMember(@PathVariable(value = "id") Long id,
-                                        @Valid @ModelAttribute MemberUpdateDto dto) {
-        MemberResponse response = memberService.editMember(id, dto);
+                                        @Valid @ModelAttribute MemberUpdateRequest request) {
+        MemberResponse response = memberService.editMember(id, request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
