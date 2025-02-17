@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,36 +27,43 @@ import java.util.stream.Collectors;
 public class MemberService {
 
     private final MemberRepository memberRepository; // PostgreSQL
-    private final RedisTemplate<String, MemberDto> redisTemplate; // Redis
+    private final RedisTemplate<String, Object> redisTemplate; // Redis
     private final GcpStorageService gcpStorageService;
     private final PasswordEncoder passwordEncoder;
 
 
     @Cacheable(cacheNames = "memberCache", key = "#id", unless = "#result == null")
     @Transactional(readOnly = true)
-    public MemberDto findMember(Long id) {
+    public MemberProfileResponse findMember(Long id) {
 
         return memberRepository.findById(id)
-                .map(MemberDto::toDto)
+                .map(MemberProfileResponse::from)
                 .orElseThrow(() -> new UserNotFoundException("Member not found with id: " + id));
     }
 
     @Cacheable(cacheNames = "allMembersCache", unless = "#result.isEmpty()")
     @Transactional(readOnly = true)
-    public List<MemberDto> findAllMember() {
+    public List<MemberProfileResponse> findAllMember() {
         String cacheKey = "allMembers";
 
-        List<MemberDto> cachedMembers = (List<MemberDto>) redisTemplate.opsForValue().get(cacheKey);
-        if (cachedMembers != null && !cachedMembers.isEmpty()) {
-            return cachedMembers;
+        Object cachedValue = redisTemplate.opsForValue().get(cacheKey);
+        if (cachedValue != null) {
+            try {
+                @SuppressWarnings("unchecked")
+                List<MemberProfileResponse> cachedMembers = (List<MemberProfileResponse>) cachedValue;
+                if (!cachedMembers.isEmpty()) {
+                    return cachedMembers;
+                }
+            } catch (ClassCastException e) {
+                log.error("Error casting cached value to List<MemberProfileResponse>", e);
+            }
         }
-
-        List<MemberDto> members = memberRepository.findAll().stream()
-                .map(MemberDto::toDto)
+        List<MemberProfileResponse> members = memberRepository.findAll().stream()
+                .map(MemberProfileResponse::from)
                 .collect(Collectors.toList());
 
         if (!members.isEmpty()) {
-            redisTemplate.opsForValue().set(cacheKey, (MemberDto) members, 1, TimeUnit.HOURS);
+            redisTemplate.opsForValue().set(cacheKey, members, 1, TimeUnit.HOURS);
 
         }
             return members;
@@ -97,7 +105,7 @@ public class MemberService {
 
     private void updateRedisMemberCache(Member member) {
         String cacheKey = "member:" + member.getId();
-        MemberDto memberDto = MemberDto.toDto(member);
+        MemberProfileResponse memberDto = MemberProfileResponse.from(member);
         redisTemplate.opsForValue().set(cacheKey, memberDto, 1, TimeUnit.HOURS);
 
         updateAllMembersCache();

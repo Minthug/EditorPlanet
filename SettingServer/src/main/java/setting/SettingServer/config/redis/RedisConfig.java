@@ -10,7 +10,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import setting.SettingServer.dto.MemberDto;
+import setting.SettingServer.dto.MemberProfileResponse;
+
+import java.util.List;
 
 @Configuration
 public class RedisConfig {
@@ -25,11 +27,12 @@ public class RedisConfig {
     private int redisDatabase;
 
     @Bean
-    public RedisTemplate<String, MemberDto> redisTemplate(RedisConnectionFactory connectionFactory) {
-        RedisTemplate<String, MemberDto> template = new RedisTemplate<>();
-        template.setConnectionFactory(connectionFactory);
+    public RedisTemplate<String, MemberProfileResponse> redisTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, MemberProfileResponse> template = new RedisTemplate<>();
+
         template.setKeySerializer(new StringRedisSerializer());
         template.setValueSerializer(new Jackson2JsonRedisSerializer<>(String.class));
+        template.setHashValueSerializer(new Jackson2JsonRedisSerializer<>(List.class));
         return template;
     }
 

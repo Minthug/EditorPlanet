@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import setting.SettingServer.dto.MemberDto;
+import setting.SettingServer.dto.MemberProfileResponse;
 import setting.SettingServer.dto.MemberResponse;
 import setting.SettingServer.dto.MemberUpdateRequest;
 import setting.SettingServer.service.MemberService;
@@ -21,14 +21,14 @@ public class MemberController {
     private final MemberService memberService;
 
     @GetMapping("/{id}")
-    public ResponseEntity<MemberDto> findMember(@PathVariable(value = "id") Long id) {
-        MemberDto member = memberService.findMember(id);
+    public ResponseEntity<MemberProfileResponse> findMember(@PathVariable(value = "id") Long id) {
+        MemberProfileResponse member = memberService.findMember(id);
         return ResponseEntity.ok(member);
     }
 
     @GetMapping("/findAll")
-    public ResponseEntity<List<MemberDto>> findAllMember() {
-        List<MemberDto> members = memberService.findAllMember();
+    public ResponseEntity<List<MemberProfileResponse>> findAllMember() {
+        List<MemberProfileResponse> members = memberService.findAllMember();
         return ResponseEntity.ok(members);
     }
 
