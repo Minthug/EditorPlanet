@@ -12,10 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setting.SettingServer.common.exception.UserNotFoundException;
-import setting.SettingServer.dto.MemberProfileResponse;
-import setting.SettingServer.dto.MemberResponse;
-import setting.SettingServer.dto.MemberUpdateRequest;
-import setting.SettingServer.dto.ProfileDto;
+import setting.SettingServer.dto.*;
 import setting.SettingServer.entity.Member;
 import setting.SettingServer.repository.MemberRepository;
 
@@ -72,10 +69,10 @@ public class MemberService {
     }
 
     @Transactional(readOnly = true)
-    public ProfileDto getProfile(String email) {
+    public ProfileResponse getProfile(String email) {
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("Member not found with email: " + email));
-        return ProfileDto.fromMember(member);
+        return ProfileResponse.fromMember(member);
     }
 
     @Transactional

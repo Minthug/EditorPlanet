@@ -9,12 +9,11 @@ import org.springframework.transaction.annotation.Transactional;
 import setting.SettingServer.common.exception.DuplicateEmailException;
 import setting.SettingServer.common.exception.LoginFailureException;
 import setting.SettingServer.common.exception.UserNotFoundException;
-import setting.SettingServer.common.oauth.AuthTokens;
 import setting.SettingServer.common.oauth.RequestOAuthInfoService;
 import setting.SettingServer.config.jwt.dto.TokenDto;
 import setting.SettingServer.config.jwt.service.JwtService;
 import setting.SettingServer.dto.LoginDto;
-import setting.SettingServer.dto.SignUpRequestDto;
+import setting.SettingServer.dto.SignUpRequest;
 import setting.SettingServer.entity.JwtTokenType;
 import setting.SettingServer.entity.Member;
 import setting.SettingServer.entity.ProviderType;
@@ -37,14 +36,14 @@ public class AuthService {
     private final RequestOAuthInfoService oAuthInfoService;
 
     @Transactional
-    public void signUp(SignUpRequestDto signUpRequestDto) throws Exception {
-        validateUniqueInfo(signUpRequestDto);
-        validateRequiredFields(signUpRequestDto);
+    public void signUp(SignUpRequest request) throws Exception {
+        validateUniqueInfo(request);
+        validateRequiredFields(request);
 
         Member member = Member.builder()
-                .email(signUpRequestDto.getEmail())
-                .password(signUpRequestDto.getPassword())
-                .name(signUpRequestDto.getName())
+                .email(request.email())
+                .password(request.password())
+                .name(request.name())
                 .role(UserRole.USER)
                 .type(ProviderType.LOCAL)
                 .build();
@@ -53,26 +52,26 @@ public class AuthService {
         memberRepository.save(member);
     }
 
-    private void validateRequiredFields(SignUpRequestDto dto) {
-        if (StringUtils.isEmpty(dto.getEmail())) {
+    private void validateRequiredFields(SignUpRequest dto) {
+        if (StringUtils.isEmpty(dto.email())) {
             throw new InvalidParameterException("Email is required");
         }
 
-        if (StringUtils.isEmpty(dto.getPassword())) {
+        if (StringUtils.isEmpty(dto.password())) {
             throw new InvalidParameterException("Password is required");
         }
 
-        if (StringUtils.isEmpty(dto.getName())) {
+        if (StringUtils.isEmpty(dto.name())) {
             throw new InvalidParameterException("Name is required");
         }
     }
 
-    private void validateUniqueInfo(SignUpRequestDto dto) {
-        if (memberRepository.findByEmail(dto.getEmail()).isPresent()) {
+    private void validateUniqueInfo(SignUpRequest dto) {
+        if (memberRepository.findByEmail(dto.email()).isPresent()) {
             throw new DuplicateEmailException("Email already exists");
         }
 
-        if (memberRepository.findByName(dto.getName()).isPresent()) {
+        if (memberRepository.findByName(dto.name()).isPresent()) {
             throw new DuplicateFormatFlagsException("Name already exists");
         }
     }

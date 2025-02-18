@@ -12,8 +12,8 @@ import setting.SettingServer.common.exception.LoginFailureException;
 import setting.SettingServer.common.oauth.AuthTokens;
 import setting.SettingServer.config.jwt.service.LoginService;
 import setting.SettingServer.dto.LoginDto;
-import setting.SettingServer.dto.ProfileDto;
-import setting.SettingServer.dto.SignUpRequestDto;
+import setting.SettingServer.dto.ProfileResponse;
+import setting.SettingServer.dto.SignUpRequest;
 import setting.SettingServer.service.AuthService;
 import setting.SettingServer.service.MemberService;
 import setting.SettingServer.user.params.GoogleLoginParams;
@@ -32,25 +32,25 @@ public class AuthController {
     private final MemberService memberService;
 
     @PostMapping("/signup")
-    public ResponseEntity sign_up(@RequestBody SignUpRequestDto signUpRequestDto) throws Exception {
-        if (signUpRequestDto.getEmail() == null || signUpRequestDto.getEmail().trim().isEmpty()) {
+    public ResponseEntity sign_up(@RequestBody SignUpRequest request) throws Exception {
+        if (request.email() == null || request.email().trim().isEmpty()) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", "이메일 주소 입력"));
         }
-        if (signUpRequestDto.getPassword() == null || signUpRequestDto.getPassword().trim().isEmpty()) {
+        if (request.password() == null || request.password().trim().isEmpty()) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", "비밀번호 입력"));
         }
-        if (signUpRequestDto.getName() == null || signUpRequestDto.getName().trim().isEmpty()) {
+        if (request.name() == null || request.name().trim().isEmpty()) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", "이름 입력"));
         }
 
         try {
-            authService.signUp(signUpRequestDto);
+            authService.signUp(request);
             return ResponseEntity.ok().body(Map.of("Message", "회원가입 완료"));
         } catch (DuplicateEmailException e) {
             return ResponseEntity
@@ -75,9 +75,9 @@ public class AuthController {
     }
 
     @GetMapping("/profile")
-    public ResponseEntity<ProfileDto> getProfile(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<ProfileResponse> getProfile(@AuthenticationPrincipal UserDetails userDetails) {
         String email = userDetails.getUsername();
-        ProfileDto profileDto = memberService.getProfile(email);
+        ProfileResponse profileDto = memberService.getProfile(email);
         return ResponseEntity.ok(profileDto);
     }
 
