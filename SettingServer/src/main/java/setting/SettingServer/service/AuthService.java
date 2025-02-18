@@ -12,7 +12,7 @@ import setting.SettingServer.common.exception.UserNotFoundException;
 import setting.SettingServer.common.oauth.RequestOAuthInfoService;
 import setting.SettingServer.config.jwt.dto.TokenDto;
 import setting.SettingServer.config.jwt.service.JwtService;
-import setting.SettingServer.dto.LoginDto;
+import setting.SettingServer.dto.LoginRequest;
 import setting.SettingServer.dto.SignUpRequest;
 import setting.SettingServer.entity.JwtTokenType;
 import setting.SettingServer.entity.Member;
@@ -77,8 +77,8 @@ public class AuthService {
     }
 
     @Transactional
-    public TokenDto login(LoginDto loginDto) {
-        Member member = memberRepository.findByEmail(loginDto.getEmail())
+    public TokenDto login(LoginRequest request) {
+        Member member = memberRepository.findByEmail(request.email())
                 .orElseThrow(() -> new UserNotFoundException("Member not found"));
 
         if (member.getType() == null) {
@@ -87,7 +87,7 @@ public class AuthService {
         }
 
         if (member.getType() == ProviderType.LOCAL) {
-            if (!encoder.matches(loginDto.getPassword(), member.getPassword())) {
+            if (!encoder.matches(request.password(), member.getPassword())) {
                 throw new LoginFailureException("비밀번호가 일치하지 않습니다");
             }
         }

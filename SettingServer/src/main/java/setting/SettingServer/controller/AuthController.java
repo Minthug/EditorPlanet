@@ -11,7 +11,7 @@ import setting.SettingServer.common.exception.DuplicateEmailException;
 import setting.SettingServer.common.exception.LoginFailureException;
 import setting.SettingServer.common.oauth.AuthTokens;
 import setting.SettingServer.config.jwt.service.LoginService;
-import setting.SettingServer.dto.LoginDto;
+import setting.SettingServer.dto.LoginRequest;
 import setting.SettingServer.dto.ProfileResponse;
 import setting.SettingServer.dto.SignUpRequest;
 import setting.SettingServer.service.AuthService;
@@ -60,9 +60,9 @@ public class AuthController {
     }
 
     @PostMapping("/signin")
-    public ResponseEntity sign_in(@RequestBody LoginDto loginDto) {
+    public ResponseEntity sign_in(@RequestBody LoginRequest request) {
         try {
-            return ResponseEntity.ok(authService.login(loginDto));
+            return ResponseEntity.ok(authService.login(request));
         } catch (LoginFailureException e) {
             return ResponseEntity
                     .status(HttpStatus.UNAUTHORIZED)
