@@ -15,6 +15,7 @@ public interface DirectMessageRepository extends JpaRepository<DirectMessage, Lo
 
     List<DirectMessage> findByReceiverId(Long memberId);
 
+    List<DirectMessage> findBySenderId(Long memberId);
 
     @Query("SELECT dm FROM DirectMessage dm " +
             "WHERE (dm.sender.id = :userId1 AND dm.receiver.id = :userId2) " +

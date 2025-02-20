@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.stylesheets.LinkStyle;
+import setting.SettingServer.common.exception.UnauthorizedException;
 import setting.SettingServer.entity.DirectMessage;
 import setting.SettingServer.entity.Member;
 import setting.SettingServer.repository.DirectMessageRepository;
@@ -41,10 +42,29 @@ public class DirectMessageService {
         return directMessageRepository.save(message).getId();
     }
 
-    public List<DirectMessageResponse> getReceivedMessage(Long memberId) {
+    public List<DirectMessageResponse> getReceivedMessages(Long memberId) {
         return directMessageRepository.findByReceiverId(memberId)
                 .stream()
                 .map(DirectMessageResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    public List<DirectMessageResponse> getSentMessages(Long memberId) {
+        return directMessageRepository.findBySenderId(memberId)
+                .stream()
+                .map(DirectMessageResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void markAsRead(Long messageId, Long memberId) {
+        DirectMessage message = directMessageRepository.findById(messageId)
+                .orElseThrow(() -> new EntityNotFoundException("메세지를 찾을 수 없습니다"));
+
+        if (!message.getReceiver().getUserId().equals(memberId)) {
+            throw new UnauthorizedException("읽음 처리 권한이 없습니다");
+        }
+
+        message.markAsRead();
     }
 }
