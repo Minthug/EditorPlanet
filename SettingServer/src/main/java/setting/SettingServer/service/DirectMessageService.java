@@ -5,12 +5,16 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.w3c.dom.stylesheets.LinkStyle;
 import setting.SettingServer.entity.DirectMessage;
 import setting.SettingServer.entity.Member;
 import setting.SettingServer.repository.DirectMessageRepository;
 import setting.SettingServer.repository.MemberRepository;
 import setting.SettingServer.service.request.DirectMessageRequest;
 import setting.SettingServer.service.response.DirectMessageResponse;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -35,5 +39,12 @@ public class DirectMessageService {
                 .isRead(false)
                 .build();
         return directMessageRepository.save(message).getId();
+    }
+
+    public List<DirectMessageResponse> getReceivedMessage(Long memberId) {
+        return directMessageRepository.findByReceiverId(memberId)
+                .stream()
+                .map(DirectMessageResponse::from)
+                .collect(Collectors.toList());
     }
 }
