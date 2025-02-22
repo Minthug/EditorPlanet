@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import setting.SettingServer.common.BaseTime;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Getter
 @AllArgsConstructor
@@ -32,9 +35,23 @@ public class Reference extends BaseTime {
     @JoinColumn(name = "member_id", nullable = false)
     private Member author;
 
+    @OneToMany(mappedBy = "reference", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ReferenceTag> referenceTags = new HashSet<>();
     private double averageRating;
 
     private int ratingCount;
+
+    public void addTag(Tag tag) {
+        ReferenceTag referenceTag = ReferenceTag.builder()
+                .reference(this)
+                .tag(tag)
+                .build();
+    }
+
+    public void removeTag(Tag tag) {
+        referenceTags.removeIf(rt -> rt.getTag().equals(tag));
+        tag.decrementUseCount();
+    }
 
     public void update(String title, String thumbnail, String videoUrl) {
         this.title = title;
