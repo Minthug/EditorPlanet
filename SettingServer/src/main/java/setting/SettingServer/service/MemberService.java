@@ -26,7 +26,8 @@ import java.util.stream.Collectors;
 public class MemberService {
 
     private final MemberRepository memberRepository; // PostgreSQL
-    private final RedisTemplate<String, Object> redisTemplate; // Redis
+    private final RedisTemplate<String, List<MemberProfileResponse>> redisTemplate; // Redis
+    private final RedisTemplate<String, MemberProfileResponse> memberRedisTemplate;
     private final GcpStorageService gcpStorageService;
     private final PasswordEncoder passwordEncoder;
 
@@ -43,20 +44,14 @@ public class MemberService {
     @Cacheable(cacheNames = "allMembersCache", unless = "#result.isEmpty()")
     @Transactional(readOnly = true)
     public List<MemberProfileResponse> findAllMember() {
+
         String cacheKey = "allMembers";
 
-        Object cachedValue = redisTemplate.opsForValue().get(cacheKey);
-        if (cachedValue != null) {
-            try {
-                @SuppressWarnings("unchecked")
-                List<MemberProfileResponse> cachedMembers = (List<MemberProfileResponse>) cachedValue;
-                if (!cachedMembers.isEmpty()) {
-                    return cachedMembers;
-                }
-            } catch (ClassCastException e) {
-                log.error("Error casting cached value to List<MemberProfileResponse>", e);
-            }
+        List<MemberProfileResponse> cachedMembers = redisTemplate.opsForValue().get(cacheKey);
+        if (cachedMembers != null && !cachedMembers.isEmpty()) {
+            return cachedMembers;
         }
+
         List<MemberProfileResponse> members = memberRepository.findAll().stream()
                 .map(MemberProfileResponse::from)
                 .collect(Collectors.toList());
@@ -105,7 +100,7 @@ public class MemberService {
     private void updateRedisMemberCache(Member member) {
         String cacheKey = "member:" + member.getId();
         MemberProfileResponse memberDto = MemberProfileResponse.from(member);
-        redisTemplate.opsForValue().set(cacheKey, memberDto, 1, TimeUnit.HOURS);
+        memberRedisTemplate.opsForValue().set(cacheKey, memberDto, 1, TimeUnit.HOURS);
 
         updateAllMembersCache();
     }

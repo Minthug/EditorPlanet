@@ -8,6 +8,7 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import setting.SettingServer.dto.MemberProfileResponse;
@@ -27,12 +28,24 @@ public class RedisConfig {
     private int redisDatabase;
 
     @Bean
-    public RedisTemplate<String, MemberProfileResponse> redisTemplate(RedisConnectionFactory connectionFactory) {
-        RedisTemplate<String, MemberProfileResponse> template = new RedisTemplate<>();
+    public RedisTemplate<String, List<MemberProfileResponse>> listRedisTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, List<MemberProfileResponse>> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
 
         template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(new Jackson2JsonRedisSerializer<>(String.class));
-        template.setHashValueSerializer(new Jackson2JsonRedisSerializer<>(List.class));
+        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+        template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
+
+        return template;
+    }
+
+    @Bean
+    public RedisTemplate<String, MemberProfileResponse> redisTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, MemberProfileResponse> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(new Jackson2JsonRedisSerializer<>(MemberProfileResponse.class));
         return template;
     }
 
