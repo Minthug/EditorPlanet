@@ -12,7 +12,7 @@ public interface RatingRepository extends JpaRepository<Rating, Long> {
 
     List<Rating> findByReferenceId(Long referenceId);
 
-    Optional<Rating> findByReferenceIdAnAndMemberId(Long referenceId, Long memberId);
+    Optional<Rating> findByReferenceIdAndMemberId(Long referenceId, Long memberId);
 
     @Query("select AVG(r.score) from Rating r WHERE r.id = :referenceId")
     Optional<Double> calculateAverageScore(@Param("referenceId") Long referenceId);

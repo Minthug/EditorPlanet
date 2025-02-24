@@ -36,7 +36,7 @@ public class RatingService {
         Member member = memberRepository.findById(request.memberId())
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 회원 입니다"));
 
-        if (ratingRepository.findByReferenceIdAnAndMemberId(request.referenceId(), request.memberId()).isPresent()) {
+        if (ratingRepository.findByReferenceIdAndMemberId(request.referenceId(), request.memberId()).isPresent()) {
             throw new DuplicateRatingException("이미 별점을 등록한 게시글 입니다");
         }
 

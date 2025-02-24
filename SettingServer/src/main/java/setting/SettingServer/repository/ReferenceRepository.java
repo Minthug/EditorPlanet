@@ -13,6 +13,6 @@ public interface ReferenceRepository extends JpaRepository<Reference, Long> {
 
     Page<Reference> findByAuthor_IdAndIsDeletedFalse(Long memberId, Pageable pageable);
 
-    Page<Reference> findByAuthor_IdOrdOrderByCreatedAtDesc(Long memberId, Pageable pageable);
+    Page<Reference> findByAuthor_IdOrderByCreatedAtDesc(Long memberId, Pageable pageable);
 
 }

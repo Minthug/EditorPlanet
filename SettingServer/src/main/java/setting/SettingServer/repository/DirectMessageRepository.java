@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface DirectMessageRepository extends JpaRepository<DirectMessage, Long> {
 
-    List<DirectMessage> findBySenderIdOrderBySentAtDesc(Long senderId);
+    List<DirectMessage> findBySenderIdOrderBySendAtDesc(Long senderId);
 
     List<DirectMessage> findByReceiverIdOrderBySendAtDesc(Long receiverId);
 
