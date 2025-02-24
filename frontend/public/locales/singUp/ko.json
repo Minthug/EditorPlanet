@@ -1,0 +1,11 @@
+{
+    "title": "에디터 플래닛 회원가입",
+    "signupGoogle": "구글 아이디로 회원가입",
+    "signupNaver": "네이버 아이디로 회원가입",
+    "signupKakao": "카카오 아이디로 회원가입",
+    "introduceTermsOfService": "계정을 생성하면 에디터 플래닛의 서비스 약관 및 개인정보 보호정책에 동의하게 됩니다",
+    "termsOfService": "서비스 약관",
+    "introduceAlreadyHaveAccount": "이미 계정이 있으신가요?",
+    "signin": "로그인"
+
+}
