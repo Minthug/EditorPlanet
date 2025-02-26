@@ -1,0 +1,21 @@
+{
+    "goHome": "Home",
+    "title": "Sign in to Editor-Planet",
+    "signinGoogle": "Sign in with Google",
+    "signinNaver": "Sign in with Naver",
+    "signinKakao": "Sign in with Kakao",
+    "email": "Username or Email",
+    "emailPlaceholder": "Enter your username or email",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "findPassword": "Find Password",
+    "signin": "Sign in",
+    "signupIntroduce": "Don't have an account?",
+    "signup": "Sign Up",
+
+    "emailError": "Please respect the format of your email",
+    "passwordError": "Please write your password",
+    "passwordLengthError": "Password must be at least 6 characters long",
+    "passwordLetterError": "Password must contain letters and numbers",
+    "loginFailedError": "Login failed, please check your username and password"
+}
