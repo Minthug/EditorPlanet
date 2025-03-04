@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.stylesheets.LinkStyle;
 import setting.SettingServer.common.exception.UnauthorizedException;
+import setting.SettingServer.dto.SendDirectMessageCommand;
 import setting.SettingServer.entity.DirectMessage;
 import setting.SettingServer.entity.Member;
 import setting.SettingServer.repository.DirectMessageRepository;
@@ -26,7 +27,7 @@ public class DirectMessageService {
     private final MemberRepository memberRepository;
 
     @Transactional
-    public Long sendMessage(DirectMessageRequest request) {
+    public Long sendMessage(SendDirectMessageCommand request) {
         Member sender = memberRepository.findById(request.senderId())
                 .orElseThrow(() -> new EntityNotFoundException("발신자를 찾을 수 없습니다"));
 
