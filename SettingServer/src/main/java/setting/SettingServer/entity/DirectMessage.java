@@ -53,4 +53,19 @@ public class DirectMessage {
     }
 
 
+    public void addAttachments(List<MessageAttachment> attachments) {
+        attachments.forEach(this::addAttachment);
+    }
+
+    public Long getSenderId() {
+        return sender.getId();
+    }
+
+    public Long getReceiverId() {
+        return receiver.getId();
+    }
+
+    public String getSenderName() {
+        return sender.getName();
+    }
 }
