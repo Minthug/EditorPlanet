@@ -18,4 +18,10 @@ public class MessageAttachment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "message_id")
     private DirectMessage message;
+
+    private String contentType;
+
+    public void setMessage(DirectMessage message) {
+        this.message = message;
+    }
 }

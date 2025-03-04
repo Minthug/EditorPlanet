@@ -6,14 +6,18 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@EntityListeners(AuditingEntityListener.class) // JPA support
 public class DirectMessage {
 
     @Id
@@ -34,10 +38,19 @@ public class DirectMessage {
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
-    private LocalDateTime sendAt;
+    private LocalDateTime sentAt;
+
+    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MessageAttachment> attachments = new ArrayList<>();
 
     public void markAsRead() {
         this.isRead = true;
     }
+
+    public void addAttachment(MessageAttachment attachment) {
+        this.attachments.add(attachment);
+        attachment.setMessage(this);
+    }
+
 
 }
