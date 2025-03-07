@@ -47,7 +47,7 @@ public class Member {
 
     private boolean isDeleted;
 
-    public Member(long id, String email, String name, String password, String phoneNumber, LocalDate birthDay, String imageUrl, UserRole role, ProviderType type, boolean isDeleted) {
+    public Member(long id, String email, String name, String password, String phoneNumber, LocalDate birthDay, String imageUrl, String accessToken, String refreshToken, UserRole role, ProviderType type, boolean isDeleted) {
         this.id = id;
         this.email = email;
         this.name = name;
@@ -55,6 +55,8 @@ public class Member {
         this.phoneNumber = phoneNumber;
         this.birthDay = birthDay;
         this.imageUrl = imageUrl;
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
         this.role = role;
         this.type = type;
         this.isDeleted = isDeleted;

@@ -8,20 +8,22 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import setting.SettingServer.common.exception.JwtAuthenticationException;
+import setting.SettingServer.common.oauth.JwtAuthenticationToken;
 import setting.SettingServer.config.jwt.service.JwtService;
 import setting.SettingServer.entity.JwtTokenType;
 import setting.SettingServer.entity.Member;
 import setting.SettingServer.repository.MemberRepository;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -40,21 +42,20 @@ public class JwtAuthenticationProcessingFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        // 인증 예외 URL은 필터 건너뛰기
         if (isNoCheckUrl(request.getRequestURI())) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            String token = resolveToken(request);
-            if (StringUtils.hasText(token)) {
-                if (jwtService.isRefreshToken(token)) {
-                    processRefreshToken(response, token);
-                    return;
-                } else if (jwtService.validateToken(token)) {
-                    Authentication authentication = jwtService.getAuthentication(token);
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                }
+            // 액세스 토큰 추출 및 관리
+            // 일반 API 요청에선 액세스 토큰만 검증하고 처리하도록 단순화
+            String accessToken = resolveToken(request);
+            if (StringUtils.hasText(accessToken) && jwtService.validateToken(accessToken)) {
+                // accessToken 검증 및 인증 처리
+                Authentication authentication = getAuthenticationFromToken(accessToken);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception e) {
             handlerFilterException(response, e);
@@ -62,6 +63,21 @@ public class JwtAuthenticationProcessingFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private Authentication getAuthenticationFromToken(String accessToken) {
+        String email = jwtService.extractEmail(accessToken)
+                .orElseThrow(() -> new JwtAuthenticationException("Could not extract email from token"));
+
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new JwtAuthenticationException("User not found: " + email));
+
+        UserDetails userDetails = createUserDetails(member);
+        return new UsernamePasswordAuthenticationToken(
+                userDetails,
+                null,
+                userDetails.getAuthorities()
+        );
     }
 
     private String resolveToken(HttpServletRequest request) {
@@ -138,5 +154,9 @@ public class JwtAuthenticationProcessingFilter extends OncePerRequestFilter {
         response.sendError(HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
         response.setContentType("application/json");
         response.getWriter().write("{\"error\": \"" + e.getMessage() + "\"}");
+    }
+
+    public void setAuthentication(Member member) {
+        saveAuthentication(member);
     }
 }
