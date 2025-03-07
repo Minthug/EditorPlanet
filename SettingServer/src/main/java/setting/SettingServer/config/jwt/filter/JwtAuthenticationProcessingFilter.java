@@ -57,12 +57,11 @@ public class JwtAuthenticationProcessingFilter extends OncePerRequestFilter {
                 Authentication authentication = getAuthenticationFromToken(accessToken);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
+
+            filterChain.doFilter(request, response);
         } catch (Exception e) {
             handlerFilterException(response, e);
-            return;
         }
-
-        filterChain.doFilter(request, response);
     }
 
     private Authentication getAuthenticationFromToken(String accessToken) {
@@ -157,6 +156,9 @@ public class JwtAuthenticationProcessingFilter extends OncePerRequestFilter {
     }
 
     public void setAuthentication(Member member) {
-        saveAuthentication(member);
+        UserDetails userDetails = createUserDetails(member);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }
