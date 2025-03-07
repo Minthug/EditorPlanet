@@ -50,7 +50,7 @@ public class SecurityConfig {
     private static final String[] PUBLIC_URLS = {
             "/v1/auth/**", "/v1/upload/**", "/v1/boards","/oauth2/authorization/**", "/",
             "/css/**", "/images/**", "/js/**", "/h2-console/**", "/favicon.ico", "/error", "/v1/oauth/**",
-            "/v1/chat/**"
+            "/v1/chat/**", "/refresh"
         };
 
     private static final String[] USER_ADMIN_AUTHORITIES = {"USER", "ADMIN"};
@@ -102,7 +102,8 @@ public class SecurityConfig {
         auth
                 .requestMatchers(PUBLIC_URLS).permitAll()
                 .requestMatchers(HttpMethod.GET, "/v1/members/", "/v1/members/{id}", "/v1/members").permitAll()
-                .requestMatchers(HttpMethod.PATCH, "/v1/members/{id}").hasAnyAuthority(USER_ADMIN_AUTHORITIES);
+                .requestMatchers(HttpMethod.PATCH, "/v1/members/{id}").hasAnyAuthority(USER_ADMIN_AUTHORITIES)
+                .requestMatchers(HttpMethod.POST, "/refresh").permitAll();
 
         configureUserAdminRequests(auth);
         auth.anyRequest().authenticated();
