@@ -15,6 +15,7 @@ import setting.SettingServer.repository.MemberRepository;
 import setting.SettingServer.service.request.DirectMessageRequest;
 import setting.SettingServer.service.response.DirectMessageResponse;
 
+import java.awt.print.Pageable;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,16 +35,24 @@ public class DirectMessageService {
         Member receiver = memberRepository.findById(request.receiverId())
                 .orElseThrow(() -> new EntityNotFoundException("수신자를 찾을 수 없습니다"));
 
+        if (sender.getUserId().equals(receiver.getId())) {
+            throw new IllegalArgumentException("자기 자신에게 메시지를 보낼수 없습니다");
+        }
+
         DirectMessage message = DirectMessage.builder()
                 .sender(sender)
                 .receiver(receiver)
                 .content(request.content())
                 .isRead(false)
                 .build();
-        return directMessageRepository.save(message).getId();
+
+        DirectMessage savedMessage = directMessageRepository.save(message);
+        log.info("메시지 전송 완료: 메시지 ID={}", savedMessage.getId());
+
+        return savedMessage.getId();
     }
 
-    public List<DirectMessageResponse> getReceivedMessages(Long memberId) {
+    public List<DirectMessageResponse> getReceivedMessages(Long memberId, Pageable pageable) {
         return directMessageRepository.findByReceiverId(memberId)
                 .stream()
                 .map(DirectMessageResponse::from)
