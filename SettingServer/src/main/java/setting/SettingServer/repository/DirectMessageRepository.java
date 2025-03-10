@@ -16,6 +16,10 @@ public interface DirectMessageRepository extends JpaRepository<DirectMessage, Lo
 
     List<DirectMessage> findByReceiverIdOrderBySendAtDesc(Long receiverId);
 
+    Page<DirectMessage> findByReceiverIdOrderByCreatedAtDesc(Long receiverId, Pageable pageable);
+
+    Page<DirectMessage> findBySenderIdOrderByCreatedAtDesc(Long senderId, Pageable pageable);
+
     List<DirectMessage> findByReceiverId(Long memberId);
 
     List<DirectMessage> findBySenderId(Long memberId);

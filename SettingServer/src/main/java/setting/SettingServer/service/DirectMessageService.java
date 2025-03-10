@@ -53,7 +53,7 @@ public class DirectMessageService {
         return savedMessage.getId();
     }
 
-    public List<DirectMessageResponse> getReceivedMessages(Long memberId, Pageable pageable) {
+    public Page<DirectMessageResponse> getReceivedMessages(Long memberId, Pageable pageable) {
 
         log.debug("받은 메시지 조회: 회원 ID={}, 페이지 크기={}, 크기={}", memberId, pageable.getPageNumber(), pageable.getPageSize());
 
@@ -61,15 +61,22 @@ public class DirectMessageService {
             throw new EntityNotFoundException("회원을 찾을 수 없습니다.(ID: " + memberId + ")");
         }
 
-        return directMessageRepository.findBy)
-                .collect(Collectors.toList());
+        return directMessageRepository.findByReceiverIdOrderByCreatedAtDesc(memberId, pageable)
+                .map(DirectMessageResponse::from);
     }
 
-    public List<DirectMessageResponse> getSentMessages(Long memberId) {
-        return directMessageRepository.findBySenderId(memberId)
-                .stream()
-                .map(DirectMessageResponse::from)
-                .collect(Collectors.toList());
+    @Transactional(readOnly = true)
+    public Page<DirectMessageResponse> getSentMessages(Long memberId, Pageable pageable) {
+
+        log.debug("보낸 메시지 조회: 회원 ID={}, 페이지={}, 크기={}", memberId, pageable.getPageNumber(), pageable.getPageSize());
+
+        if (!memberRepository.existsById(memberId)) {
+            throw new EntityNotFoundException("회원을 찾을 수 없습니다.(ID: " + memberId + ")");
+
+            }
+
+        return directMessageRepository.findBySenderIdOrderByCreatedAtDesc(memberId, pageable)
+                .map(DirectMessageResponse::from);
     }
 
     @Transactional
