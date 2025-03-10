@@ -40,12 +40,29 @@ public class DirectMessage {
     @Column(nullable = false, updatable = false)
     private LocalDateTime sentAt;
 
+    // 논리적 삭제를 위한 필드 추가
+    private boolean isDeletedBySender = false;
+    private boolean isDeletedByReceiver = false;
+
+
     @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MessageAttachment> attachments = new ArrayList<>();
 
     public void markAsRead() {
         this.isRead = true;
     }
+
+
+    // 발신자 삭제 메서드
+    public void markDeletedBySender() {
+        this.isDeletedBySender = true;
+    }
+
+    // 수신자 삭제 메서드
+    public void markDeletedByReceiver() {
+        this.isDeletedByReceiver = true;
+    }
+
 
     public void addAttachment(MessageAttachment attachment) {
         this.attachments.add(attachment);

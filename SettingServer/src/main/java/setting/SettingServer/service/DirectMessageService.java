@@ -3,6 +3,8 @@ package setting.SettingServer.service;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.stylesheets.LinkStyle;
@@ -15,7 +17,6 @@ import setting.SettingServer.repository.MemberRepository;
 import setting.SettingServer.service.request.DirectMessageRequest;
 import setting.SettingServer.service.response.DirectMessageResponse;
 
-import java.awt.print.Pageable;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -53,9 +54,14 @@ public class DirectMessageService {
     }
 
     public List<DirectMessageResponse> getReceivedMessages(Long memberId, Pageable pageable) {
-        return directMessageRepository.findByReceiverId(memberId)
-                .stream()
-                .map(DirectMessageResponse::from)
+
+        log.debug("받은 메시지 조회: 회원 ID={}, 페이지 크기={}, 크기={}", memberId, pageable.getPageNumber(), pageable.getPageSize());
+
+        if (!memberRepository.existsById(memberId)) {
+            throw new EntityNotFoundException("회원을 찾을 수 없습니다.(ID: " + memberId + ")");
+        }
+
+        return directMessageRepository.findBy)
                 .collect(Collectors.toList());
     }
 
