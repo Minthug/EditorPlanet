@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.stylesheets.LinkStyle;
@@ -97,6 +98,8 @@ public class DirectMessageService {
 
     @Transactional
     public void markAsRead(Long messageId, Long memberId) {
+        log.debug("메시지 읽음 처리: 메시지 ID={}, 회원 ID={}", messageId, memberId);
+
         DirectMessage message = directMessageRepository.findById(messageId)
                 .orElseThrow(() -> new EntityNotFoundException("메세지를 찾을 수 없습니다"));
 
@@ -104,6 +107,34 @@ public class DirectMessageService {
             throw new UnauthorizedException("읽음 처리 권한이 없습니다");
         }
 
-        message.markAsRead();
+        if (!message.isRead()) {
+            message.markAsRead();
+            log.info("메시지 읽음 처리 완료: 메시지 ID={}", messageId);
+        } else {
+            log.debug("이미 읽은 메시지: 메시지 ID={}", messageId);
+        }
+    }
+
+    @Transactional
+    public int markAllRead(Long receiverId, Long senderId) {
+        log.info("메시지 읽음 처리: 수신자 ID={}, 발신자 ID={}", receiverId, senderId);
+
+        if (!memberRepository.existsById(receiverId)) {
+            throw new EntityNotFoundException("회원을 찾을 수 없습니다. ID: " + receiverId);
+        }
+
+        if (senderId != null && !memberRepository.existsById(senderId)) {
+            throw new EntityNotFoundException("발신자를 찾을 수 없습니다. ID: " + senderId);
+        }
+
+        int updatedCount;
+        if (senderId != null) {
+            updatedCount = directMessageRepository.markAllAsReadBySender(receiverId, senderId);
+        } else {
+            updatedCount = directMessageRepository.markAllAsRead(receiverId);
+        }
+
+        log.info("일괄 읽음 처리: {} 개의 메시지 업데이트 됨", updatedCount);
+        return updatedCount;
     }
 }
