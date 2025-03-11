@@ -80,6 +80,22 @@ public class DirectMessageService {
     }
 
     @Transactional
+    public Page<DirectMessageResponse> getConversation(Long userId, Long otherUserId, Pageable pageable) {
+        log.debug("대화 내역 조회: 사용자 ID={}, 상대방 ID={}", userId, otherUserId);
+
+        if (!memberRepository.existsById(userId)) {
+            throw new EntityNotFoundException("회원을 찾을 수 없습니다(ID: " + userId + ")");
+        }
+
+        if (!memberRepository.existsById(otherUserId)) {
+            throw new EntityNotFoundException("상대 회원을 찾을 수 없습니다(ID: " + otherUserId + ")");
+        }
+
+        return directMessageRepository.findConversation(userId, otherUserId, pageable)
+                .map(DirectMessageResponse::from);
+    }
+
+    @Transactional
     public void markAsRead(Long messageId, Long memberId) {
         DirectMessage message = directMessageRepository.findById(messageId)
                 .orElseThrow(() -> new EntityNotFoundException("메세지를 찾을 수 없습니다"));

@@ -34,7 +34,7 @@ public interface DirectMessageRepository extends JpaRepository<DirectMessage, Lo
             "WHERE (dm.sender.id = :userId1 AND dm.receiver.id = :userId2) " +
             "OR (dm.sender.id = :userId2 AND dm.receiver.id = :userId1) " +
             "ORDER BY dm.sentAt")
-    List<DirectMessage> findConversation(@Param("userId1") Long userId1, @Param("userId2") Long userId2);
+    Page<DirectMessage> findConversation(@Param("userId1") Long userId1, @Param("userId2") Long userId2, Pageable pageable);
 
     // 안 읽은 메시지 수 조회
     long countByReceiverIdAndIsReadFalseAndIsDeletedByReceiverFalse(Long receiverId);
