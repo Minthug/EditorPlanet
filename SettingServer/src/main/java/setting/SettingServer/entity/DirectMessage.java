@@ -37,7 +37,7 @@ public class DirectMessage {
     private boolean isRead;
 
     @CreatedDate
-    @Column(nullable = false, updatable = false)
+    @Column(name = "sent_at", nullable = false, updatable = false)
     private LocalDateTime sentAt;
 
     // 논리적 삭제를 위한 필드 추가
@@ -85,4 +85,13 @@ public class DirectMessage {
     public String getSenderName() {
         return sender.getName();
     }
+
+    @PrePersist
+    public void prePersist() {
+        this.sentAt = LocalDateTime.now();
+    }
+
+//    public LocalDateTime getSentAt() {
+//        return getCreatedAt();
+//    }
 }

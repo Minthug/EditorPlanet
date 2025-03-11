@@ -6,15 +6,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import setting.SettingServer.dto.chat.MessagePreviewResponse;
 import setting.SettingServer.entity.DirectMessage;
 
 import java.util.List;
 
 public interface DirectMessageRepository extends JpaRepository<DirectMessage, Long> {
-
-    List<DirectMessage> findBySenderIdOrderBySendAtDesc(Long senderId);
-
-    List<DirectMessage> findByReceiverIdOrderBySendAtDesc(Long receiverId);
 
     Page<DirectMessage> findByReceiverIdOrderByCreatedAtDesc(Long receiverId, Pageable pageable);
 
@@ -66,4 +63,13 @@ public interface DirectMessageRepository extends JpaRepository<DirectMessage, Lo
             "ORDER BY MAX(dm.created_at) DESC",
             nativeQuery = true)
     Page<Long> findRecentContactIds(@Param("userId") Long userId, Pageable pageable);
+
+
+        @Query("SELECT new setting.SettingServer.dto.chat.MessagePreviewResponse(" +
+                "dm.id, dm.content, dm.sentAt, dm.isRead) " +
+                "FROM DirectMessage dm " +
+                "WHERE ((dm.sender.id = :userId1 AND dm.receiver.id = :userId2 AND dm.isDeletedBySender = false) " +
+                "OR (dm.sender.id = :userId2 AND dm.receiver.id = :userId1 AND dm.isDeletedByReceiver = false)) " +
+                "ORDER BY dm.sentAt DESC")
+        List<MessagePreviewResponse> findLatestMessagePreview(@Param("userId1") Long userId1, @Param("userId2") Long userId2, Pageable pageable);
 }

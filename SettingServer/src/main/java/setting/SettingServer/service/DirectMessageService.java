@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.stylesheets.LinkStyle;
 import setting.SettingServer.common.exception.UnauthorizedException;
 import setting.SettingServer.dto.SendDirectMessageCommand;
+import setting.SettingServer.dto.chat.ChatContractResponse;
 import setting.SettingServer.entity.DirectMessage;
 import setting.SettingServer.entity.Member;
 import setting.SettingServer.repository.DirectMessageRepository;
@@ -52,6 +53,39 @@ public class DirectMessageService {
         log.info("메시지 전송 완료: 메시지 ID={}", savedMessage.getId());
 
         return savedMessage.getId();
+    }
+
+    @Transactional(readOnly = true)
+    public DirectMessage getMessage(Long messageId, Long userId) {
+        DirectMessage message = directMessageRepository.findById(messageId)
+                .orElseThrow(() -> new EntityNotFoundException("메시지를 찾을수 없습니다" + messageId));
+
+        if (!message.getSender().getUserId().equals(userId) && !message.getReceiver().getUserId().equals(userId)) {
+            throw new UnauthorizedException("해당 메시지에 접근할 권한이 없습니다");
+        }
+
+        if (message.isDeletedBySender() && message.getSender().getUserId().equals(userId)) {
+            throw new EntityNotFoundException("삭제된 메시지 입니다");
+        }
+
+        if (message.isDeletedByReceiver() && message.getReceiver().getUserId().equals(userId)) {
+            throw new EntityNotFoundException("삭제된 메시지 입니다");
+        }
+
+        return message;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ChatContractResponse> getContractMessage(Long userId, Pageable pageable) {
+        Page<Long> contactIds = directMessageRepository.findRecentContactIds(userId, pageable);
+
+        return contactIds.map(contactId -> {
+            Member contact = memberRepository.findById(contactId)
+                    .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다" + contactId));
+
+            DirectMessage latestMessage = directMessageRepository.findLatestMessagePreview()
+        })
+
     }
 
     public Page<DirectMessageResponse> getReceivedMessages(Long memberId, Pageable pageable) {
