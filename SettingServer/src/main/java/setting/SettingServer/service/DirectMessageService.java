@@ -137,4 +137,47 @@ public class DirectMessageService {
         log.info("일괄 읽음 처리: {} 개의 메시지 업데이트 됨", updatedCount);
         return updatedCount;
     }
+
+    @Transactional
+    public void deleteMessage(Long messageId, Long userId) {
+        log.info("메시지 삭제 요청: 메시지 ID={}, 유저 ID={}", messageId, userId);
+
+        DirectMessage message = directMessageRepository.findById(messageId)
+                .orElseThrow(() -> new EntityNotFoundException("메시지를 찾을 수 없습니다" + messageId));
+
+        boolean isSender = message.getSender().getUserId().equals(userId);
+        boolean isReceiver = message.getReceiver().getUserId().equals(userId);
+
+        if (!isSender && !isReceiver) {
+            log.warn("메시지 삭제 권한 없음: 메시지 ID={}, 요청자 ID={}", messageId, userId);
+            throw new UnauthorizedException("해당 메시지 삭제 권한이 없습니다");
+        }
+
+        if (isSender) {
+            message.markDeletedBySender();
+        }
+
+        if (isReceiver) {
+            message.markDeletedByReceiver();
+        }
+
+        if (message.isDeletedBySender() && message.isDeletedByReceiver()) {
+            directMessageRepository.delete(message);
+            log.info("메시지 영구 삭제 완료: 메시지 ID={}", messageId);
+        } else {
+            log.info("메시지 삭제 표시 완료: 메시지 ID={}, 발신자 삭제={}, 수신자 삭제={}", messageId,
+                    message.isDeletedBySender(), message.isDeletedByReceiver());
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public long countUnreadMessage(Long receiverId) {
+        log.debug("안읽은 메시지 조회: 수신자 ID={}", receiverId);
+
+        if (!memberRepository.existsById(receiverId)) {
+            throw new EntityNotFoundException("회원을 찾을 수 없습니다" + receiverId);
+        }
+
+        return directMessageRepository.countByReceiverIdAndIsReadFalseAndIsDeletedByReceiverFalse(receiverId);
+    }
 }
