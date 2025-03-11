@@ -71,5 +71,5 @@ public interface DirectMessageRepository extends JpaRepository<DirectMessage, Lo
                 "WHERE ((dm.sender.id = :userId1 AND dm.receiver.id = :userId2 AND dm.isDeletedBySender = false) " +
                 "OR (dm.sender.id = :userId2 AND dm.receiver.id = :userId1 AND dm.isDeletedByReceiver = false)) " +
                 "ORDER BY dm.sentAt DESC")
-        List<MessagePreviewResponse> findLatestMessagePreview(@Param("userId1") Long userId1, @Param("userId2") Long userId2, Pageable pageable);
+        List<DirectMessage> findLatestMessage(@Param("userId1") Long userId1, @Param("userId2") Long userId2, Pageable pageable);
 }

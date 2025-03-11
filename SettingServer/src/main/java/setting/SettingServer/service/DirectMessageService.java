@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.stylesheets.LinkStyle;
 import setting.SettingServer.common.exception.UnauthorizedException;
 import setting.SettingServer.dto.SendDirectMessageCommand;
+import setting.SettingServer.dto.chat.ChatContactResponse;
 import setting.SettingServer.dto.chat.ChatContractResponse;
 import setting.SettingServer.entity.DirectMessage;
 import setting.SettingServer.entity.Member;
@@ -76,16 +78,27 @@ public class DirectMessageService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ChatContractResponse> getContractMessage(Long userId, Pageable pageable) {
+    public Page<ChatContactResponse> getContractMessage(Long userId, Pageable pageable) {
         Page<Long> contactIds = directMessageRepository.findRecentContactIds(userId, pageable);
 
         return contactIds.map(contactId -> {
             Member contact = memberRepository.findById(contactId)
                     .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다" + contactId));
 
-            DirectMessage latestMessage = directMessageRepository.findLatestMessagePreview()
-        })
+            DirectMessage latestMessage = directMessageRepository.findLatestMessage(userId, contactId, PageRequest.of(0, 1))
+                    .stream().findFirst().orElse(null);
 
+            long unreadCount = directMessageRepository.countByReceiverIdAndSenderIdAndIsReadFalseAndIsDeletedByReceiverFalse(userId, contactId);
+
+            return ChatContactResponse.builder()
+                    .contactId(contactId)
+                    .contactName(contact.getName())
+                    .profileImage(contact.getImageUrl())
+                    .latestMessage(latestMessage != null ? latestMessage.getContent() : null)
+                    .latestMessageTime(latestMessage != null ? latestMessage.getSentAt() : null)
+                    .unreadCount(unreadCount)
+                    .build();
+        });
     }
 
     public Page<DirectMessageResponse> getReceivedMessages(Long memberId, Pageable pageable) {
