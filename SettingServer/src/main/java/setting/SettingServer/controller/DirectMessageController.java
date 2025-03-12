@@ -8,15 +8,14 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import setting.SettingServer.common.CustomUserDetails;
 import setting.SettingServer.dto.SendDirectMessageCommand;
 import setting.SettingServer.dto.chat.MessageNewNotification;
+import setting.SettingServer.entity.DirectMessage;
 import setting.SettingServer.service.DirectMessageService;
 import setting.SettingServer.service.request.SendDirectMessageRequest;
+import setting.SettingServer.service.response.DirectMessageResponse;
 
 import java.net.URI;
 import java.time.LocalDateTime;
@@ -47,6 +46,21 @@ public class DirectMessageController {
         return ResponseEntity.created(location).build();
     }
 
+
+    // 메시지 단일 조회
+    @GetMapping("/{messageId}")
+    public ResponseEntity<DirectMessageResponse> getMessage(@PathVariable Long messageId) {
+        Long currentUserId = getCurrentUserId();
+        log.debug("메시지 조회 요청: 메시지 ID={}, 사용자 ID={}", messageId, currentUserId);
+
+        DirectMessage message = directMessageService.getMessage(messageId, currentUserId);
+
+        if (message.getReceiver().getUserId().equals(currentUserId) && !message.isRead()) {
+            directMessageService.markAsRead(messageId, currentUserId);
+        }
+
+        return ResponseEntity.ok(DirectMessageResponse.from(message));
+    }
 
     private Long getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
