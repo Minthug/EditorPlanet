@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import setting.SettingServer.common.CustomUserDetails;
 import setting.SettingServer.common.oauth.JwtAuthenticationToken;
 import setting.SettingServer.dto.SendDirectMessageCommand;
+import setting.SettingServer.dto.chat.ChatContactResponse;
 import setting.SettingServer.dto.chat.MessageNewNotification;
 import setting.SettingServer.entity.DirectMessage;
 import setting.SettingServer.service.DirectMessageService;
@@ -140,7 +141,18 @@ public class DirectMessageController {
         return ResponseEntity.ok(response);
     }
 
+    // 최근 대화 상대 목록 조회
+    @GetMapping("/contacts")
+    public ResponseEntity<Page<ChatContactResponse>> getRecentContacts(@RequestParam(defaultValue = "0") int page,
+                                                                       @RequestParam(defaultValue = "20") int size) {
+        Long currentUserId = getCurrentUserId();
+        log.debug("최근 대화 상대 요청: 사용자 ID={}, 페이지={}, 크기={}", currentUserId, page, size);
 
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ChatContactResponse> contacts = directMessageService.getContractMessage(currentUserId, pageable);
+
+        return ResponseEntity.ok(contacts);
+    }
 
     private Long getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -157,6 +169,7 @@ public class DirectMessageController {
     }
 
 
+    // WebSockets을 통해 새 메시지 알림 전송
     private void notifyNewMessage(Long receiverId, Long messageId, Long senderId, String content) {
         try {
             MessageNewNotification notification = new MessageNewNotification(

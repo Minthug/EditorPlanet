@@ -5,47 +5,36 @@ import lombok.*;
 import org.hibernate.annotations.DynamicUpdate;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import setting.SettingServer.common.BaseTime;
 import setting.SettingServer.entity.Member;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Entity
-@DynamicUpdate
-@EntityListeners(value = {AuditingEntityListener.class})
-public class ChatRoom {
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class ChatRoom extends BaseTime {
 
-    @EqualsAndHashCode.Include
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    private ChatMessage latestChatMessage;
+    @Column
+    private String name; // 채팅방 이름
 
-    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    @JoinTable(name = "ChatRoom_Members",
-            joinColumns = @JoinColumn(name = "chatRoomId"),
-            inverseJoinColumns = @JoinColumn(name = "memberId"))
-    private Set<Member> chatRoomMembers = new HashSet<>();
+    @Column
+    private String customName; // 사용자 지정 이름 (null 시 자동 생성)
 
-    @CreatedDate
-    private LocalDateTime createdAt;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ChatRoomType roomType;
 
-    public static ChatRoom create() {
-        ChatRoom room = new ChatRoom();
+    @Column(nullable = false)
+    private boolean active = true;
 
-        room.setId(UUID.randomUUID().toString());
-        return room;
-    }
-
-    public void addMembers(Member roomMaker, Member guest) {
-        this.chatRoomMembers.add(roomMaker);
-        this.chatRoomMembers.add(guest);
-    }
+    private List<ChatRoomMember> members = new
 }
