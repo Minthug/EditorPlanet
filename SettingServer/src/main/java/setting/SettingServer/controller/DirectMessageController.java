@@ -3,6 +3,10 @@ package setting.SettingServer.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
@@ -61,6 +65,22 @@ public class DirectMessageController {
 
         return ResponseEntity.ok(DirectMessageResponse.from(message));
     }
+
+    // 보낸 메시지 목록 조회
+    @GetMapping("/sent")
+    public ResponseEntity<Page<DirectMessageResponse>> getSentMessage(@RequestParam(defaultValue = "0") int page,
+                                                                      @RequestParam(defaultValue = "20") int size) {
+
+        Long currentUserId = getCurrentUserId();
+        log.debug("보낸 메시지 목록 요청: 사용자 ID={}, 페이지={}, 크기={}", currentUserId, page, size);
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("sentAt").descending());
+        Page<DirectMessageResponse> messages = directMessageService.getSentMessages(currentUserId, pageable);
+
+        return ResponseEntity.ok(messages);
+    }
+
+
 
     private Long getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
