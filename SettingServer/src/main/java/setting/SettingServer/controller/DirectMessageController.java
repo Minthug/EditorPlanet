@@ -14,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 import setting.SettingServer.common.CustomUserDetails;
+import setting.SettingServer.common.oauth.JwtAuthenticationToken;
 import setting.SettingServer.dto.SendDirectMessageCommand;
 import setting.SettingServer.dto.chat.MessageNewNotification;
 import setting.SettingServer.entity.DirectMessage;
@@ -94,6 +95,15 @@ public class DirectMessageController {
         return ResponseEntity.ok(conversation);
     }
 
+    @PatchMapping("/{messageId}/read")
+    public ResponseEntity<Void> markMessageAsRead(@PathVariable Long messageId) {
+        Long currentUserId = getCurrentUserId();
+        log.debug("메시지 읽음 처리 요청: 메시지 ID={}, 사용자 ID={}", messageId, currentUserId);
+
+        directMessageService.markAsRead(messageId, currentUserId);
+        return ResponseEntity.noContent().build();
+    }
+
     private Long getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Object principal = auth.getPrincipal();
@@ -103,9 +113,6 @@ public class DirectMessageController {
         } else if (principal instanceof OAuth2User) {
             OAuth2User oauth2User = (OAuth2User) principal;
             return Long.parseLong(oauth2User.getAttribute("sub"));
-//        } else if (auth instanceof JwtAuthenticationToken) {
-//            JwtAuthenticationToken jwtAuth = (JwtAuthenticationToken) auth;
-//            return Long.parseLong(jwtAuth.getToken().getClaim("user_id").toString());
         }
 
         throw new IllegalStateException("지원되지 않는 인증 방식입니다");
