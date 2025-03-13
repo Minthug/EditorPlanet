@@ -128,6 +128,17 @@ public class DirectMessageController {
         return ResponseEntity.noContent().build();
     }
 
+    // 안읽은 메시지 수 조회
+    @GetMapping("/unread/count")
+    public ResponseEntity<Map<String, Long>> getUnreadMessageCount() {
+        Long currentUserId = getCurrentUserId();
+        log.debug("안읽은 메시지 수 처리 요청: 사용자 ID={}", currentUserId);
+
+        long unreadCount = directMessageService.countUnreadMessage(currentUserId);
+        Map<String, Long> response = Collections.singletonMap("UnreadCount", unreadCount);
+
+        return ResponseEntity.ok(response);
+    }
 
 
 
