@@ -24,6 +24,8 @@ import setting.SettingServer.service.response.DirectMessageResponse;
 
 import java.net.URI;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/v1/direct-messages")
@@ -95,6 +97,7 @@ public class DirectMessageController {
         return ResponseEntity.ok(conversation);
     }
 
+    // 메시지 읽음 처리
     @PatchMapping("/{messageId}/read")
     public ResponseEntity<Void> markMessageAsRead(@PathVariable Long messageId) {
         Long currentUserId = getCurrentUserId();
@@ -103,6 +106,30 @@ public class DirectMessageController {
         directMessageService.markAsRead(messageId, currentUserId);
         return ResponseEntity.noContent().build();
     }
+
+    // 메시지 일괄 읽음 처리
+    @PatchMapping("/read-all")
+    public ResponseEntity<Map<String, Integer>> markAllMessageAsRead(@RequestParam(required = false) Long senderId) {
+        Long currentUserId = getCurrentUserId();
+        log.info("메시지 일괄 읽음 처리 요청: 사용자 ID={}, 발신자 ID={}", currentUserId, senderId);
+
+        int updateCount = directMessageService.markAllRead(currentUserId, senderId);
+        Map<String, Integer> response = Collections.singletonMap("UpdatedCount", updateCount);
+        return ResponseEntity.ok(response);
+    }
+
+    // 메시지 삭제
+    @DeleteMapping("/{messageId}")
+    public ResponseEntity<Void> deleteMessage(@PathVariable Long messageId) {
+        Long currentUserId = getCurrentUserId();
+        log.info("메시지 삭제 요청: 메시지 ID={}, 사용자 ID={}", messageId, currentUserId);
+
+        directMessageService.deleteMessage(messageId, currentUserId);
+        return ResponseEntity.noContent().build();
+    }
+
+
+
 
     private Long getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
