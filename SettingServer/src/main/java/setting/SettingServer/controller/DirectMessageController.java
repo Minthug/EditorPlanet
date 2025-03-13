@@ -80,7 +80,19 @@ public class DirectMessageController {
         return ResponseEntity.ok(messages);
     }
 
+    @GetMapping("/conversation/{otherUserId}")
+    public ResponseEntity<Page<DirectMessageResponse>> getConversation(@PathVariable Long otherUserId,
+                                                                 @RequestParam(defaultValue = "0") int page,
+                                                                 @RequestParam(defaultValue = "20") int size) {
 
+        Long currentUserId = getCurrentUserId();
+        log.debug("대화 내용 요청: 사용자 ID={}, 상대방 ID={}, 페이지={}, 크기={}", currentUserId, otherUserId, page, size);
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("sentAt").descending());
+        Page<DirectMessageResponse> conversation = directMessageService.getConversation(currentUserId, otherUserId, pageable);
+
+        return ResponseEntity.ok(conversation);
+    }
 
     private Long getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
