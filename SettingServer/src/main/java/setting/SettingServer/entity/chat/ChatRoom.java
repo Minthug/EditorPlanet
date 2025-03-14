@@ -2,6 +2,7 @@ package setting.SettingServer.entity.chat;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.util.StringUtils;
 import setting.SettingServer.common.BaseTime;
 import setting.SettingServer.entity.Member;
 
@@ -42,9 +43,44 @@ public class ChatRoom extends BaseTime {
 
         room.addMember(user1, ChatRoomMemberRole.MEMBER);
         room.addMember(user2, ChatRoomMemberRole.MEMBER);
+
+        return room;
+    }
+
+    // 그룹 채팅방 생성
+    public static ChatRoom createGroupChat(List<Member> members, Member creator, String customName) {
+        if (members.size() < 2) {
+            throw new IllegalArgumentException("그룹 채팅방은 최소 2인 이상의 멤버가 필요합니다");
+        }
+
+        ChatRoom room = new ChatRoom();
+        room.id = UUID.randomUUID().toString();
+        room.roomType = ChatRoomType.GROUP;
+
+        if (StringUtils.hasText(customName)) {
+            room.customName = customName;
+            room.name = customName;
+        } else {
+            room.name = generateDefaultGroupName(members);
+        }
+
+        room.addMember(creator, ChatRoomMemberRole.OWNER);
+
+        for (Member member : members) {
+            if (!member.equals(creator)) {
+                room.addMember(member, ChatRoomMemberRole.MEMBER);
+            }
+        }
+
+        return room;
+    }
+
+    private static String generateDefaultGroupName(List<Member> members) {
+        return null;
     }
 
     private static String generateDefaultName(Member user1, Member user2) {
+        return String.format("%s, %s 님의 대화방", user1.getName(), user2.getName());
     }
 
 
