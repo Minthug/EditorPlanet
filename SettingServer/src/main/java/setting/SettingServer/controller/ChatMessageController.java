@@ -3,12 +3,10 @@ package setting.SettingServer.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.stereotype.Controller;
 import setting.SettingServer.dto.chat.ChatMessageDto;
 import setting.SettingServer.entity.chat.ChatMessage;
-import setting.SettingServer.service.chat.ChatMessageService;
 
 @Controller
 @RequiredArgsConstructor

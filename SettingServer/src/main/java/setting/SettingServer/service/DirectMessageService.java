@@ -6,23 +6,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.w3c.dom.stylesheets.LinkStyle;
 import setting.SettingServer.common.exception.UnauthorizedException;
 import setting.SettingServer.dto.SendDirectMessageCommand;
 import setting.SettingServer.dto.chat.ChatContactResponse;
-import setting.SettingServer.dto.chat.ChatContractResponse;
 import setting.SettingServer.entity.DirectMessage;
 import setting.SettingServer.entity.Member;
 import setting.SettingServer.repository.DirectMessageRepository;
 import setting.SettingServer.repository.MemberRepository;
-import setting.SettingServer.service.request.DirectMessageRequest;
 import setting.SettingServer.service.response.DirectMessageResponse;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
