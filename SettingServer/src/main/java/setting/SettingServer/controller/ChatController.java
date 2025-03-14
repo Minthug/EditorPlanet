@@ -2,10 +2,6 @@ package setting.SettingServer.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import setting.SettingServer.dto.chat.ChatRoomInfoResponse;
-import setting.SettingServer.dto.chat.ChatRoomListResponse;
-import setting.SettingServer.dto.chat.CreatedChatRoomRequest;
-import setting.SettingServer.dto.chat.CreatedChatRoomResponse;
 
 @RestController
 @RequiredArgsConstructor

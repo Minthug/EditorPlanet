@@ -8,23 +8,6 @@ import setting.SettingServer.entity.chat.ChatMessage;
 
 import java.time.LocalDateTime;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class ChatMessageDto {
+public record ChatMessageDto(Long id, String content, String type, String senderId, String senderName, LocalDateTime sentAt) {
 
-    private String roomId;
-    private String authorId;
-    private String message;
-
-    public ChatMessage toEntity() {
-        ChatMessage chatMessage = ChatMessage.builder()
-                .roomId(roomId)
-                .authorId(authorId)
-                .message(message)
-                .createdAt(LocalDateTime.now())
-                .build();
-        return chatMessage;
-    }
 }
