@@ -6,7 +6,9 @@ import org.springframework.util.StringUtils;
 import setting.SettingServer.common.BaseTime;
 import setting.SettingServer.entity.Member;
 
+import javax.swing.text.html.Option;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Entity
 @Getter
@@ -75,8 +77,44 @@ public class ChatRoom extends BaseTime {
         return room;
     }
 
+    public void updateCustomName(String newCustomName) {
+        this.customName = newCustomName;
+        if (StringUtils.hasText(newCustomName)) {
+            this.name = newCustomName;
+        } else {
+            this.name = generateCurrentDefaultName();
+        }
+    }
+
+    private String generateCurrentDefaultName() {
+        if (this.roomType == ChatRoomType.DIRECT) {
+            if (this.members.size() == 2) {
+                Member member1 = this.members.get(0).getMember();
+                Member member2 = this.members.get(1).getMember();
+                return generateDefaultName(member1, member2);
+            }
+        }
+
+        List<Member> membersList = this.members.stream()
+                .map(ChatRoomMember::getMember)
+                .collect(Collectors.toList());
+        return generateDefaultGroupName(membersList);
+    }
+
     private static String generateDefaultGroupName(List<Member> members) {
-        return null;
+        int displayCount = Math.min(members.size(), 3);
+        List<String> names = members.stream()
+                .limit(displayCount)
+                .map(Member::getName)
+                .collect(Collectors.toList());
+
+        String namesText = String.join(", ", names);
+
+        if (members.size() > displayCount) {
+            return String.format("%s 외 %d 명의 대화방", namesText, members.size() - displayCount);
+        } else {
+            return String.format("%s 님의 대화방", namesText);
+        }
     }
 
     private static String generateDefaultName(Member user1, Member user2) {
@@ -99,6 +137,37 @@ public class ChatRoom extends BaseTime {
                 .build();
 
         this.members.add(chatRoomMember);
+    }
+
+    public String getDisplayName() {
+        return this.name;
+    }
+
+    // 회원별 맞춤 채팅방 이름 조회
+    public String getDisplayNameForMember(Member member) {
+        Optional<ChatRoomMember> chatRoomMember = this.members.stream()
+                .filter(m -> m.getMember().equals(member))
+                .findFirst();
+
+        if (chatRoomMember.isPresent() && StringUtils.hasText(chatRoomMember.get().getNickname())) {
+            return chatRoomMember.get().getNickname();
+        }
+
+        if (StringUtils.hasText(this.customName)) {
+            return this.customName;
+        }
+
+        if (this.roomType == ChatRoomType.DIRECT && this.members.size() == 2) {
+            ChatRoomMember otherMember = this.members.stream()
+                    .filter(m -> m.getMember().equals(member))
+                    .findFirst()
+                    .orElse(null);
+
+            if (otherMember != null) {
+                return String.format("%s 님과의 대화", otherMember.getMember().getName());
+            }
+        }
+        return this.name;
     }
 }
 
