@@ -5,18 +5,11 @@ import setting.SettingServer.entity.Member;
 import setting.SettingServer.entity.chat.ChatMessage;
 import setting.SettingServer.entity.chat.ChatRoom;
 
-public record ChatRoomListDto() {
-//    private String chatRoomId;
-//    private ChatMessage lastChatMesg;
-//    private String guestId;
-//
-//    public ChatRoomList(ChatRoom chatRoom, String userId) {
-//        this.chatRoomId = chatRoom.getId();
-//        this.lastChatMesg = chatRoom.getLatestChatMessage();
-//        for (Member member : chatRoom.getChatRoomMembers()) {
-//            if (!member.getUserId().equals(userId)) {
-//                this.guestId = userId;
-//            }
-//        }
-//    }
+import java.time.LocalDateTime;
+import java.util.List;
+
+public record ChatRoomListDto(String id, String name, String type, LocalDateTime sentAt,
+                              List<ChatRoomMemberDto> members, List<ChatMessageDto> messages) {
+
+    public static ChatRoomListDto
 }
