@@ -4,6 +4,15 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 채팅방 상세 정보 DTO
+ * @param id
+ * @param name
+ * @param type DIRECT || GROUP
+ * @param sentAt
+ * @param members
+ * @param messages
+ */
 public record ChatRoomDetailDto(String id, String name, String type, LocalDateTime sentAt,
                                 List<ChatRoomMemberDto> members, List<ChatMessageDto> messages) {
 
