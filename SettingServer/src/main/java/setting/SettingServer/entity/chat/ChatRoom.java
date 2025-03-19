@@ -17,10 +17,13 @@ public class ChatRoom extends BaseTime {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private String id;
+    private Long id;
 
     @Column
     private String name; // 채팅방 이름
+
+    @Column(unique = true, nullable = false, updatable = false)
+    private String roomCode = UUID.randomUUID().toString();
 
     @Column
     private String customName; // 사용자 지정 이름 (null 시 자동 생성)
@@ -38,9 +41,8 @@ public class ChatRoom extends BaseTime {
     // 일대일 채팅방 생성
     public static ChatRoom createDirectChat(Member user1, Member user2) {
         ChatRoom room = new ChatRoom();
-        room.id = UUID.randomUUID().toString();
+        // ID는 룸 생성 시 자동생성
         room.roomType = ChatRoomType.DIRECT;
-
         room.name = generateDefaultName(user1, user2);
 
         room.addMember(user1, ChatRoomMemberRole.MEMBER);
@@ -56,7 +58,6 @@ public class ChatRoom extends BaseTime {
         }
 
         ChatRoom room = new ChatRoom();
-        room.id = UUID.randomUUID().toString();
         room.roomType = ChatRoomType.GROUP;
 
         if (StringUtils.hasText(customName)) {

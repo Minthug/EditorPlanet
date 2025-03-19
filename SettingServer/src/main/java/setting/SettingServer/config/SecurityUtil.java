@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @NoArgsConstructor
 public class SecurityUtil {
 
-    public static String getCurrentMemberUsername() {
+    public String getCurrentMemberUsername() {
         final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || authentication.getName() == null) {
@@ -20,7 +20,7 @@ public class SecurityUtil {
         return authentication.getName();
     }
 
-    public static String getCurrentMemberUsernameOrNonMember() {
+    public String getCurrentMemberUsernameOrNonMember() {
         final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null || authentication.getName().equals("anonymousUser")) {
             return "non-member";
