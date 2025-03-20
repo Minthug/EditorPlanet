@@ -7,13 +7,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setting.SettingServer.common.exception.UnauthorizedException;
 import setting.SettingServer.config.SecurityUtil;
-import setting.SettingServer.dto.chat.ChatMessageDto;
 import setting.SettingServer.dto.chat.ChatRoomDto;
-import setting.SettingServer.dto.chat.ChatRoomMemberDto;
 import setting.SettingServer.entity.Member;
 import setting.SettingServer.entity.chat.ChatMessage;
 import setting.SettingServer.entity.chat.ChatRoom;
-import setting.SettingServer.entity.chat.ChatRoomMember;
 import setting.SettingServer.entity.chat.ChatRoomMemberStatus;
 import setting.SettingServer.repository.MemberRepository;
 import setting.SettingServer.repository.chat.ChatMessageRepository;
@@ -21,6 +18,7 @@ import setting.SettingServer.repository.chat.ChatRoomMemberRepository;
 import setting.SettingServer.repository.chat.ChatRoomRepository;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -62,6 +60,38 @@ public class ChatRoomService {
         chatRoomRepository.save(chatRoom);
 
         log.info("1:1 채팅방 생성 완료: {}", chatRoom.getRoomCode());
+        return mapToChatRoomDto(chatRoom, currentUserId);
+    }
+
+    @Transactional
+    public ChatRoomDto createGroupChatRoom(String name, String creatorId, List<Long> memberIds) {
+        log.info("그룹 채팅방 생성 요청: name={}, creator={}, members={}", name, creatorId, memberIds);
+
+        String currentUserId = securityUtil.getCurrentMemberUsername();
+        if (!currentUserId.equals(creatorId)) {
+            throw new UnauthorizedException("채팅방 생성 권한이 없습니다");
+        }
+
+        if (memberIds.isEmpty()) {
+            throw new IllegalArgumentException("그룹 채팅방은 최소 1명 이상의 멤버가 필요합니다");
+        }
+
+        Long creatorIdLong = Long.parseLong(creatorId);
+        Member creator = memberRepository.findById(creatorIdLong)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다 " + creatorId))
+
+
+        List<Member> members = new ArrayList<>();
+        for (Long memberId : memberIds) {
+            Member member = memberRepository.findById(memberId)
+                    .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다" + memberId));
+            members.add(member);
+        }
+
+        ChatRoom chatRoom = ChatRoom.createGroupChat(members, creator, name);
+        chatRoomRepository.save(chatRoom);
+
+        log.info("그룹 채팅방 생성 완료: {}", chatRoom.getRoomCode());
         return mapToChatRoomDto(chatRoom, currentUserId);
     }
 
