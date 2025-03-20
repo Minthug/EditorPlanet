@@ -6,19 +6,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setting.SettingServer.common.exception.UnauthorizedException;
 import setting.SettingServer.config.SecurityUtil;
-import setting.SettingServer.dto.chat.ChatMessageDto;
-import setting.SettingServer.dto.chat.ChatRoomDetailDto;
-import setting.SettingServer.dto.chat.ChatRoomDto;
-import setting.SettingServer.dto.chat.ChatRoomMemberDto;
+import setting.SettingServer.dto.chat.*;
 import setting.SettingServer.entity.Member;
-import setting.SettingServer.entity.chat.ChatMessage;
-import setting.SettingServer.entity.chat.ChatRoom;
-import setting.SettingServer.entity.chat.ChatRoomMember;
-import setting.SettingServer.entity.chat.ChatRoomMemberStatus;
+import setting.SettingServer.entity.chat.*;
 import setting.SettingServer.repository.MemberRepository;
 import setting.SettingServer.repository.chat.ChatMessageRepository;
 import setting.SettingServer.repository.chat.ChatRoomMemberRepository;
@@ -153,6 +148,71 @@ public class ChatRoomService {
         }
 
         return detailDto;
+    }
+
+    @Transactional(readOnly = true)
+    public ChatRoomListDto getChatRoomList(Long userId, int page, int size) {
+        log.debug("채팅방 목록 조회: userId={}, page={], size={]", userId, page, size);
+
+        String currentUserId = securityUtil.getCurrentMemberUsername();
+        if (!currentUserId.equals(userId)) {
+            throw new UnauthorizedException("접근 권한이 없습니다");
+        }
+
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + userId));
+
+        PageRequest pageRequest = PageRequest.of(page -1 , size, Sort.by("createdAt").descending());
+
+        Page<ChatRoomMember> chatRoomMembers = chatRoomMemberRepository.findByMemberAndStatusOrderByLastMessageTimestampDesc(member, ChatRoomMemberStatus.ACTIVE, pageRequest);
+
+        List<ChatRoomDto> chatRoomDtos = chatRoomMembers.stream()
+                .map(crm -> mapToChatRoomDto(crm.getChatRoom(), currentUserId))
+                .collect(Collectors.toList());
+
+        Map<String, Long> unreadCounts = getUnreadMessageCounts(userId);
+
+        return new ChatRoomListDto(
+                chatRoomDtos,
+                page,
+                chatRoomMembers.getTotalPages(),
+                chatRoomMembers.getTotalElements(),
+                unreadCounts
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Long> getUnreadMessageCounts(String userId) {
+        log.debug("안 읽은 메시지 수 조화: userId={]", userId);
+
+        String currentUserId = securityUtil.getCurrentMemberUsername();
+        if (userId != null && !currentUserId.equals(userId)) {
+            throw new UnauthorizedException("접근 권한이 없습니다");
+        }
+
+        Long userIdLong = Long.parseLong(currentUserId);
+
+        Member member = memberRepository.findById(userIdLong)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + currentUserId));
+
+        List<ChatRoomMember> chatRoomMembers = chatRoomMemberRepository.findByMemberAndStatus(member, ChatRoomMemberStatus.ACTIVE);
+
+        Map<String, Long> unreadCounts = new HashMap<>();
+
+        for (ChatRoomMember chatRoomMember : chatRoomMembers) {
+            String roomCode = chatRoomMember.getChatRoom().getRoomCode();
+            Long lastReadMessageId = chatRoomMember.getLastReadMessageId();
+
+            long unreadCount;
+            if (lastReadMessageId == null) {
+                unreadCount = chatMessageRepository.countByChatRoomAndMessageTypeNot(chatRoomMember.getChatRoom(), MessageType.SERVER);
+            } else {
+                unreadCount = chatMessageRepository.countByChatRoomAndIdGreaterThanAndMessageTypeNot(chatRoomMember.getChatRoom(), lastReadMessageId, MessageType.SERVER);
+            }
+
+            unreadCounts.put(roomCode, unreadCount);
+        }
+        return unreadCounts;
     }
 
     private ChatMessageDto mapToChatMessageDto(ChatMessage message) {
