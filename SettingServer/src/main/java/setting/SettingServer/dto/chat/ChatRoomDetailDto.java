@@ -6,22 +6,22 @@ import java.util.List;
 
 /**
  * 채팅방 상세 정보 DTO
- * @param id
+ * @param roomCode
  * @param name
  * @param type DIRECT || GROUP
  * @param sentAt
  * @param members
  * @param messages
  */
-public record ChatRoomDetailDto(String id, String name, String type, LocalDateTime sentAt,
+public record ChatRoomDetailDto(String roomCode, String name, String type, LocalDateTime sentAt,
                                 List<ChatRoomMemberDto> members, List<ChatMessageDto> messages) {
 
 
-    public ChatRoomDetailDto(List<ChatRoomMemberDto> members, LocalDateTime sentAt, String type, String name, String id) {
-        this(id, name, type, sentAt, members, new ArrayList<>());
+    public ChatRoomDetailDto(List<ChatRoomMemberDto> members, LocalDateTime sentAt, String type, String name, String roomCode) {
+        this(roomCode, name, type, sentAt, members, new ArrayList<>());
     }
 
     public ChatRoomDetailDto withMessages(List<ChatMessageDto> messages) {
-        return new ChatRoomDetailDto(id, name, type, sentAt, members, messages);
+        return new ChatRoomDetailDto(roomCode, name, type, sentAt, members, messages);
     }
 }

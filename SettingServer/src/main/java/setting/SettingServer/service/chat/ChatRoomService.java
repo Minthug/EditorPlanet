@@ -3,14 +3,21 @@ package setting.SettingServer.service.chat;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setting.SettingServer.common.exception.UnauthorizedException;
 import setting.SettingServer.config.SecurityUtil;
+import setting.SettingServer.dto.chat.ChatMessageDto;
+import setting.SettingServer.dto.chat.ChatRoomDetailDto;
 import setting.SettingServer.dto.chat.ChatRoomDto;
+import setting.SettingServer.dto.chat.ChatRoomMemberDto;
 import setting.SettingServer.entity.Member;
 import setting.SettingServer.entity.chat.ChatMessage;
 import setting.SettingServer.entity.chat.ChatRoom;
+import setting.SettingServer.entity.chat.ChatRoomMember;
 import setting.SettingServer.entity.chat.ChatRoomMemberStatus;
 import setting.SettingServer.repository.MemberRepository;
 import setting.SettingServer.repository.chat.ChatMessageRepository;
@@ -18,9 +25,8 @@ import setting.SettingServer.repository.chat.ChatRoomMemberRepository;
 import setting.SettingServer.repository.chat.ChatRoomRepository;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -78,7 +84,7 @@ public class ChatRoomService {
 
         Long creatorIdLong = Long.parseLong(creatorId);
         Member creator = memberRepository.findById(creatorIdLong)
-                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다 " + creatorId))
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다 " + creatorId));
 
 
         List<Member> members = new ArrayList<>();
@@ -93,6 +99,105 @@ public class ChatRoomService {
 
         log.info("그룹 채팅방 생성 완료: {}", chatRoom.getRoomCode());
         return mapToChatRoomDto(chatRoom, currentUserId);
+    }
+
+    @Transactional
+    public ChatRoomDetailDto getChatRoom(String roomCode, Long userId) {
+        log.debug("채팅방 정보 조회: roomCode={}, userId={}", roomCode, userId);
+
+        String currentUserId = securityUtil.getCurrentMemberUsername();
+        if (!currentUserId.equals(userId)) {
+            throw new UnauthorizedException("접근 권한이 없습니다");
+        }
+
+        ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
+                .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다: " + roomCode));
+
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + userId));
+
+        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member)
+                .orElseThrow(() -> new UnauthorizedException("채팅방에 접근 권한이 없습니다"));
+
+        if (!chatRoomMember.isActive()) {
+            throw new UnauthorizedException("채팅방을 나갔거나 강퇴되었습니다");
+        }
+
+        ChatRoomDetailDto detailDto = mapToChatRoomDetailDto(chatRoom, userId);
+
+        Page<ChatMessage> recentMessagePage = chatMessageRepository.findByChatRoomOrderByCreatedAtDesc(chatRoom, PageRequest.of(0, 20));
+
+        List<ChatMessage> recentMessages = recentMessagePage.getContent();
+
+        List<ChatMessageDto> messageDtos = recentMessages.stream()
+                .sorted(Comparator.comparing(ChatMessage::getCreatedAt))
+                .map(this::mapToChatMessageDto)
+                .collect(Collectors.toList());
+
+        detailDto = detailDto.withMessages(messageDtos);
+
+        Long latestMessageId = recentMessages.stream()
+                .max(Comparator.comparing(ChatMessage::getId))
+                .map(ChatMessage::getId)
+                .orElse(null);
+
+        if (latestMessageId != null) {
+            Long currentLastReadId = chatRoomMember.getLastReadMessageId();
+
+            if (currentLastReadId == null || currentLastReadId < latestMessageId) {
+                chatRoomMember.updateLastReadMessageId(latestMessageId);
+                chatRoomMemberRepository.save(chatRoomMember);
+
+                log.debug("채팅방 접근 시 자동 읽음 처리: roomCode={}, userId={], latestMessageId={]", roomCode, userId, latestMessageId);
+            }
+        }
+
+        return detailDto;
+    }
+
+    private ChatMessageDto mapToChatMessageDto(ChatMessage message) {
+
+        String senderId = null;
+        String senderName = null;
+
+        if (message.getSender() != null) {
+            senderId = message.getSender().getUserId().toString();
+            senderName = message.getSender().getName();
+        }
+
+        return new ChatMessageDto(
+                message.getId(),
+                message.getContent(),
+                message.getMessageType().name(),
+                senderId,
+                senderName,
+                message.getCreatedAt());
+    }
+
+    private ChatRoomDetailDto mapToChatRoomDetailDto(ChatRoom chatRoom, Long currentUserId) {
+
+        Member currentMember = memberRepository.findById(currentUserId)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + currentUserId));
+
+        String displayName = chatRoom.getDisplayNameForMember(currentMember);
+
+        List<ChatRoomMemberDto> memberDtos = chatRoomMemberRepository.findByChatRoomAndStatusOrderByCreatedAtAsc(chatRoom, ChatRoomMemberStatus.ACTIVE).stream()
+                .map(member -> new ChatRoomMemberDto(
+                        member.getId(),
+                        member.getMember().getUserId().toString(),
+                        member.getMember().getName(),
+                        member.getRole().name(),
+                        member.getJoinedAt(),
+                        member.getMember().getImageUrl()))
+                .collect(Collectors.toList());
+
+        return new ChatRoomDetailDto(
+                chatRoom.getRoomCode(),
+                displayName,
+                chatRoom.getRoomType().name(),
+                chatRoom.getCreatedAt(),
+                memberDtos,
+                Collections.emptyList());
     }
 
     private ChatRoomDto mapToChatRoomDto(ChatRoom chatRoom, String currentUserId) {
@@ -110,6 +215,11 @@ public class ChatRoomService {
         if (latestMessage != null) {
             latestMessageContent = latestMessage.getContent();
             latestMessageSenderName = latestMessage.getSender().getName();
+
+            if (latestMessage.getSender() != null) {
+                latestMessageSenderId = latestMessage.getSender().getUserId().toString();
+                latestMessageSenderName = latestMessage.getSender().getName();
+            }
         }
 
         long memberCount = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatRoomMemberStatus.ACTIVE);
