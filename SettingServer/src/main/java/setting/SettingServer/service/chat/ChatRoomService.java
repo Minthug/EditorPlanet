@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -170,7 +169,7 @@ public class ChatRoomService {
                 .map(crm -> mapToChatRoomDto(crm.getChatRoom(), currentUserId))
                 .collect(Collectors.toList());
 
-        Map<String, Long> unreadCounts = getUnreadMessageCounts(userId);
+        Map<String, Long> unreadCounts = getUnreadMessageCounts(currentUserId);
 
         return new ChatRoomListDto(
                 chatRoomDtos,
@@ -180,6 +179,51 @@ public class ChatRoomService {
                 unreadCounts
         );
     }
+
+    @Transactional
+    public ChatMessageListDto getChatMessages(String roomCode, Long userId, int page, int size) {
+        log.debug("채팅 메시지 조회: roomCode={], userId={}, page={}, size={}", roomCode, userId, page, size);
+
+        // 현재 로그인한 사용자 확인
+        String currentUserId = securityUtil.getCurrentMemberUsername();
+        if (!currentUserId.equals(userId)) {
+            throw new UnauthorizedException("접근 권한이 없습니다");
+        }
+
+        // 채팅방 조회
+        ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
+                .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다: " + roomCode));
+
+        Long userIdLong = Long.parseLong(currentUserId);
+
+        // 요청자가 채팅방 멤버인지 확인
+        Member member = memberRepository.findById(userIdLong)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + userId));
+
+        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member)
+                .orElseThrow(() -> new UnauthorizedException("접근 권한이 없습니다"));
+
+        if (!chatRoomMember.isActive()) {
+            throw new UnauthorizedException("채팅방을 나갔거나 강퇴 되었습니다");
+        }
+
+        PageRequest pageRequest = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+
+        Page<ChatMessage> messagePage = chatMessageRepository.findByChatRoomOrderByCreatedAtDesc(chatRoom, pageRequest);
+
+        List<ChatMessageDto> messageDtos = messagePage.getContent().stream()
+                .sorted(Comparator.comparing(ChatMessage::getCreatedAt))
+                .map(this::mapToChatMessageDto)
+                .collect(Collectors.toList());
+
+        return new ChatMessageListDto(
+                messageDtos,
+                page,
+                messagePage.getTotalPages(),
+                messagePage.getTotalElements()
+        );
+    }
+
 
     @Transactional(readOnly = true)
     public Map<String, Long> getUnreadMessageCounts(String userId) {
