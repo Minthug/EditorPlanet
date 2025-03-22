@@ -291,6 +291,61 @@ public class ChatRoomService {
         chatMessageRepository.save(systemMessage);
     }
 
+    @Transactional
+    public boolean leaveChatRoom(String roomCode, Long userId) {
+        log.info("채팅방 나가기: roomCode={}, userId={}", roomCode, userId);
+
+
+        // 현재 로그인한 사용자 확인
+        String currentUserId = securityUtil.getCurrentMemberUsername();
+        if (!currentUserId.equals(userId)) {
+            throw new UnauthorizedException("접근 권한이 없습니다");
+        }
+
+        ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
+                .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다: " + roomCode));
+
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + userId));
+
+        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member)
+                .orElseThrow(() -> new EntityNotFoundException("채팅방 멤버를 찾을 수 없습니다:"));
+
+        if (!chatRoomMember.isActive()) {
+            throw new IllegalStateException("이미 채팅방을 나갔습니다");
+        }
+
+        if (chatRoomMember.getRole() == ChatRoomMemberRole.OWNER && chatRoom.getRoomType() == ChatRoomType.GROUP) {
+            List<ChatRoomMember> activeMembers = chatRoomMemberRepository.findByChatRoomAndStatusOrderByCreatedAtAsc(chatRoom, ChatRoomMemberStatus.ACTIVE);
+
+            ChatRoomMember newOwner = activeMembers.stream()
+                    .filter(m -> !m.getMember().getUserId().equals(userId))
+                    .findFirst()
+                    .orElse(null);
+
+            if (newOwner != null) {
+                newOwner.updateRole(ChatRoomMemberRole.OWNER);
+                chatRoomMember.updateRole(ChatRoomMemberRole.MEMBER);
+                chatRoomMemberRepository.save(newOwner);
+
+                createSystemMessage(chatRoom, "방장 권한이 " + newOwner.getMember().getName() + "님에게 이전 되었습니다");
+            }
+        }
+
+        chatRoomMember.leave();
+        chatRoomMemberRepository.save(chatRoomMember);
+
+        createSystemMessage(chatRoom, member.getName() + "님이 채팅방을 나갔습니다");
+
+        long activeMembers = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatRoomMemberStatus.ACTIVE);
+        if (activeMembers == 0) {
+            chatRoom.deactivate();
+            chatRoomRepository.save(chatRoom);
+        }
+
+        return true;
+    }
+
     @Transactional(readOnly = true)
     public Map<String, Long> getUnreadMessageCounts(String userId) {
         log.debug("안 읽은 메시지 수 조화: userId={]", userId);

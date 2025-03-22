@@ -170,5 +170,14 @@ public class ChatRoom extends BaseTime {
         }
         return this.name;
     }
+
+
+    public void deactivate() {
+        this.active = false;
+    }
+
+    public void activate() {
+        this.active = true;
+    }
 }
 
