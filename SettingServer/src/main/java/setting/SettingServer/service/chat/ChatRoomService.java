@@ -203,20 +203,13 @@ public class ChatRoomService {
     public boolean inviteMember(String roomCode, Long inviterId, Long inviteeId) {
         log.info("채팅방 멤버 초대: roomCode={}, inviterId={}, inviteeId={}", roomCode, inviterId, inviteeId);
 
-        // 현재 로그인한 사용자 확인
-        String currentUserId = securityUtil.getCurrentMemberUsername();
-        if (!currentUserId.equals(inviterId)) {
-            throw new UnauthorizedException("초대 권한이 없습니다");
-        }
+        validateCurrentUser(inviterId);
 
-        ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
-                .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다: " + roomCode));
+        ChatRoom chatRoom = getChatRoomByCode(roomCode);
 
-        Member inviter = memberRepository.findById(inviterId)
-                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + inviterId));
+        Member inviter = getMemberById(inviterId);
+        ChatRoomMember inviterMember = validateActiveMember(chatRoom, inviter);
 
-        ChatRoomMember inviterMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, inviter)
-                .orElseThrow(() -> new UnauthorizedException("채팅방에 접근 권한이 없습니다"));
 
         if (chatRoom.getRoomType() == ChatRoomType.DIRECT) {
             throw new IllegalStateException("1:1 채팅방에는 추가 멤버를 초대할 수 없습니다");
@@ -226,8 +219,7 @@ public class ChatRoomService {
             throw new UnauthorizedException("초대 권한이 없습니다");
         }
 
-        Member invitee = memberRepository.findById(inviteeId)
-                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + inviteeId));
+        Member invitee = getMemberById(inviteeId);
 
         // 이미 채팅방에 있는 멤버인지 확인
         Optional<ChatRoomMember> existingMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, invitee);
@@ -265,22 +257,17 @@ public class ChatRoomService {
         chatMessageRepository.save(systemMessage);
     }
 
+    /**
+     * 채팅방 나가기
+     */
     @Transactional
     public boolean leaveChatRoom(String roomCode, Long userId) {
         log.info("채팅방 나가기: roomCode={}, userId={}", roomCode, userId);
 
+        validateCurrentUser(userId);
 
-        // 현재 로그인한 사용자 확인
-        String currentUserId = securityUtil.getCurrentMemberUsername();
-        if (!currentUserId.equals(userId)) {
-            throw new UnauthorizedException("접근 권한이 없습니다");
-        }
-
-        ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
-                .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다: " + roomCode));
-
-        Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + userId));
+        ChatRoom chatRoom = getChatRoomByCode(roomCode);
+        Member member = getMemberById(userId);
 
         ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member)
                 .orElseThrow(() -> new EntityNotFoundException("채팅방 멤버를 찾을 수 없습니다:"));
@@ -289,8 +276,27 @@ public class ChatRoomService {
             throw new IllegalStateException("이미 채팅방을 나갔습니다");
         }
 
+        transferOwnershipIfNeeded(chatRoom, chatRoomMember, userId);
+
+        chatRoomMember.leave();
+        chatRoomMemberRepository.save(chatRoomMember);
+
+        createSystemMessage(chatRoom, member.getName() + "님이 채팅방을 나갔습니다");
+
+        deactivateChatRoomIfEmpty(chatRoom);
+
+        return true;
+    }
+
+
+    /**
+     * 방장이 나갈 때 권한 이전 처리
+     */
+    private void transferOwnershipIfNeeded(ChatRoom chatRoom, ChatRoomMember chatRoomMember, Long userId) {
         if (chatRoomMember.getRole() == ChatRoomMemberRole.OWNER && chatRoom.getRoomType() == ChatRoomType.GROUP) {
-            List<ChatRoomMember> activeMembers = chatRoomMemberRepository.findByChatRoomAndStatusOrderByCreatedAtAsc(chatRoom, ChatRoomMemberStatus.ACTIVE);
+            // 다른 활성 멤버 찾기
+            List<ChatRoomMember> activeMembers = chatRoomMemberRepository.findByChatRoomAndStatusOrderByCreatedAtAsc(
+                    chatRoom, ChatRoomMemberStatus.ACTIVE);
 
             ChatRoomMember newOwner = activeMembers.stream()
                     .filter(m -> !m.getMember().getUserId().equals(userId))
@@ -298,52 +304,43 @@ public class ChatRoomService {
                     .orElse(null);
 
             if (newOwner != null) {
+                // 방장 권한 이전
                 newOwner.updateRole(ChatRoomMemberRole.OWNER);
                 chatRoomMember.updateRole(ChatRoomMemberRole.MEMBER);
                 chatRoomMemberRepository.save(newOwner);
 
-                createSystemMessage(chatRoom, "방장 권한이 " + newOwner.getMember().getName() + "님에게 이전 되었습니다");
+                // 시스템 메시지 추가
+                createSystemMessage(chatRoom, "방장 권한이 " + newOwner.getMember().getName() + "님에게 이전되었습니다.");
             }
         }
+    }
 
-        chatRoomMember.leave();
-        chatRoomMemberRepository.save(chatRoomMember);
-
-        createSystemMessage(chatRoom, member.getName() + "님이 채팅방을 나갔습니다");
-
+    /**
+     * 채팅방 비활성화
+     */
+    private void deactivateChatRoomIfEmpty(ChatRoom chatRoom) {
         long activeMembers = chatRoomMemberRepository.countByChatRoomAndStatus(chatRoom, ChatRoomMemberStatus.ACTIVE);
         if (activeMembers == 0) {
             chatRoom.deactivate();
             chatRoomRepository.save(chatRoom);
         }
-
-        return true;
     }
 
+
+    /**
+     * 채팅방 이름 변경
+     */
     @Transactional
     public boolean updateChatRoomName(String roomCode, Long userId, String name) {
         log.info("채팅방 이름 변경: roomCode={}, userId={}, name={}", roomCode, userId, name);
 
-        // 현재 로그인한 사용자 확인
-        String currentUserId = securityUtil.getCurrentMemberUsername();
-        if (!currentUserId.equals(userId)) {
-            throw new UnauthorizedException("접근 권한이 없습니다");
-        }
+        validateCurrentUser(userId);
 
-        // 채팅방 조회
-        ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
-                .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다: " + roomCode));
+        Pair<ChatRoom, ChatRoomMember> result = getChatRoomAndValidateMember(roomCode, userId);
+        ChatRoom chatRoom = result.getFirst();
+        ChatRoomMember chatRoomMember = result.getSecond();
 
-        // 사용자 조회
-        Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + userId));
-
-        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member)
-                .orElseThrow(() -> new EntityNotFoundException("채팅방 멤버를 찾을 수 없습니다"));
-
-        if (!chatRoomMember.isActive()) {
-            throw new UnauthorizedException("채팅방을 나갔거나 강퇴되었습니다");
-        }
+        Member member = getMemberById(userId);
 
         if (chatRoom.getRoomType() == ChatRoomType.DIRECT) {
             chatRoomMember.updateNickname(name);
@@ -362,31 +359,17 @@ public class ChatRoomService {
         return true;
     }
 
+    /**
+     * 채팅방 참여자 목록 조회
+     */
     @Transactional
     public List<ChatRoomMemberDto> getChatRoomMember(String roomCode, Long userId) {
         log.debug("채팅방 멤버 목록 조회: roomCode={}, userId={}", roomCode, userId);
 
-        // 현재 로그인한 사용자 확인
-        String currentUserId = securityUtil.getCurrentMemberUsername();
-        if (!currentUserId.equals(userId)) {
-            throw new UnauthorizedException("접근 권한이 없습니다");
-        }
+        validateCurrentUser(userId);
 
-        // 채팅방 조회
-        ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
-                .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다: " + roomCode));
-
-        // 사용자 조회
-        Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + userId));
-
-        // 채팅방 멤버십 조회
-        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member)
-                .orElseThrow(() -> new UnauthorizedException("채팅방에 접근 권한이 없습니다"));
-
-        if (!chatRoomMember.isActive()) {
-            throw new UnauthorizedException("채팅방을 나갔거나 강퇴되었습니다");
-        }
+        Pair<ChatRoom, ChatRoomMember> result = getChatRoomAndValidateMember(roomCode, userId);
+        ChatRoom chatRoom = result.getFirst();
 
         // 활성 멤버 목록 조회
         List<ChatRoomMember> members = chatRoomMemberRepository.findByChatRoomAndStatusOrderByCreatedAtAsc(
@@ -398,19 +381,19 @@ public class ChatRoomService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 메시지 읽음 처리
+     */
     @Transactional
     public boolean markMessageAsRead(String roomCode, Long userId, Long messageId) {
         log.debug("메시지 읽음 처리: roomCode={}, userId={}, messageId={}", roomCode, userId, messageId);
 
-        // 현재 로그인한 사용자 확인
-        String currentUserId = securityUtil.getCurrentMemberUsername();
-        if (!currentUserId.equals(userId)) {
-            throw new UnauthorizedException("접근 권한이 없습니다");
-        }
+        validateCurrentUser(userId);
 
-        // 채팅방 조회
-        ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
-                .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다: " + roomCode));
+        Pair<ChatRoom, ChatRoomMember> result = getChatRoomAndValidateMember(roomCode, userId);
+        ChatRoom chatRoom = result.getFirst();
+        ChatRoomMember chatRoomMember = result.getSecond();
+
 
         // 메시지 조회
         ChatMessage message = chatMessageRepository.findById(messageId)
@@ -421,18 +404,6 @@ public class ChatRoomService {
             throw new IllegalArgumentException("메시지가 해당 채팅방의 것이 아닙니다");
         }
 
-        // 사용자 조회
-        Member member = memberRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + userId));
-
-        // 채팅방 멤버십 조회
-        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member)
-                .orElseThrow(() -> new UnauthorizedException("채팅방에 접근 권한이 없습니다"));
-
-        if (!chatRoomMember.isActive()) {
-            throw new UnauthorizedException("채팅방을 나갔거나 강퇴되었습니다");
-        }
-
         // 메시지 읽음 처리
         chatRoomMember.updateLastReadMessageId(messageId);
         chatRoomMemberRepository.save(chatRoomMember);
@@ -440,39 +411,41 @@ public class ChatRoomService {
         return true;
     }
 
-
+    /**
+     * 안 읽은 메시지 수 조회
+     */
     @Transactional(readOnly = true)
     public Map<String, Long> getUnreadMessageCounts(Long userId) {
         log.debug("안 읽은 메시지 수 조화: userId={]", userId);
 
-        String currentUserId = securityUtil.getCurrentMemberUsername();
-        if (userId != null && !currentUserId.equals(userId)) {
-            throw new UnauthorizedException("접근 권한이 없습니다");
-        }
+        validateCurrentUser(userId);
+        Member member = getMemberById(userId);
 
-        Long userIdLong = Long.parseLong(currentUserId);
-
-        Member member = memberRepository.findById(userIdLong)
-                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + currentUserId));
-
-        List<ChatRoomMember> chatRoomMembers = chatRoomMemberRepository.findByMemberAndStatus(member, ChatRoomMemberStatus.ACTIVE);
+        List<ChatRoomMember> chatRoomMembers = chatRoomMemberRepository.findByMemberAndStatus(
+                member, ChatRoomMemberStatus.ACTIVE);
 
         Map<String, Long> unreadCounts = new HashMap<>();
 
         for (ChatRoomMember chatRoomMember : chatRoomMembers) {
             String roomCode = chatRoomMember.getChatRoom().getRoomCode();
-            Long lastReadMessageId = chatRoomMember.getLastReadMessageId();
-
-            long unreadCount;
-            if (lastReadMessageId == null) {
-                unreadCount = chatMessageRepository.countByChatRoomAndMessageTypeNot(chatRoomMember.getChatRoom(), MessageType.SERVER);
-            } else {
-                unreadCount = chatMessageRepository.countByChatRoomAndIdGreaterThanAndMessageTypeNot(chatRoomMember.getChatRoom(), lastReadMessageId, MessageType.SERVER);
-            }
-
-            unreadCounts.put(roomCode, unreadCount);
+            unreadCounts.put(roomCode, getUnreadCount(chatRoomMember));
         }
         return unreadCounts;
+    }
+
+    /**
+     * 특정 채팅방의 안 읽은 메시지 수 계산
+     * @return
+     */
+    private Long getUnreadCount(ChatRoomMember chatRoomMember) {
+        Long lastReadMessageId = chatRoomMember.getLastReadMessageId();
+        ChatRoom chatRoom = chatRoomMember.getChatRoom();
+
+        if (lastReadMessageId == null) {
+            return chatMessageRepository.countByChatRoomAndMessageTypeNot(chatRoom, MessageType.SERVER);
+        } else {
+            return chatMessageRepository.countByChatRoomAndIdGreaterThanAndMessageTypeNot(chatRoom, lastReadMessageId, MessageType.SERVER);
+        }
     }
 
     private ChatMessageDto mapToChatMessageDto(ChatMessage message) {
