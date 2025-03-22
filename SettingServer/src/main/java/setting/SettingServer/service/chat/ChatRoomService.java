@@ -350,7 +350,6 @@ public class ChatRoomService {
     public boolean updateChatRoomName(String roomCode, Long userId, String name) {
         log.info("채팅방 이름 변경: roomCode={}, userId={}, name={}", roomCode, userId, name);
 
-
         // 현재 로그인한 사용자 확인
         String currentUserId = securityUtil.getCurrentMemberUsername();
         if (!currentUserId.equals(userId)) {
@@ -388,6 +387,85 @@ public class ChatRoomService {
 
         return true;
     }
+
+    @Transactional
+    public List<ChatRoomMemberDto> getChatRoomMember(String roomCode, Long userId) {
+        log.debug("채팅방 멤버 목록 조회: roomCode={}, userId={}", roomCode, userId);
+
+        // 현재 로그인한 사용자 확인
+        String currentUserId = securityUtil.getCurrentMemberUsername();
+        if (!currentUserId.equals(userId)) {
+            throw new UnauthorizedException("접근 권한이 없습니다");
+        }
+
+        // 채팅방 조회
+        ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
+                .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다: " + roomCode));
+
+        // 사용자 조회
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + userId));
+
+        // 채팅방 멤버십 조회
+        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member)
+                .orElseThrow(() -> new UnauthorizedException("채팅방에 접근 권한이 없습니다"));
+
+        if (!chatRoomMember.isActive()) {
+            throw new UnauthorizedException("채팅방을 나갔거나 강퇴되었습니다");
+        }
+
+        // 활성 멤버 목록 조회
+        List<ChatRoomMember> members = chatRoomMemberRepository.findByChatRoomAndStatusOrderByCreatedAtAsc(
+                chatRoom, ChatRoomMemberStatus.ACTIVE);
+
+        // DTO로 변환
+        return members.stream()
+                .map(this::mapToChatRoomMemberDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public boolean markMessageAsRead(String roomCode, Long userId, Long messageId) {
+        log.debug("메시지 읽음 처리: roomCode={}, userId={}, messageId={}", roomCode, userId, messageId);
+
+        // 현재 로그인한 사용자 확인
+        String currentUserId = securityUtil.getCurrentMemberUsername();
+        if (!currentUserId.equals(userId)) {
+            throw new UnauthorizedException("접근 권한이 없습니다");
+        }
+
+        // 채팅방 조회
+        ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
+                .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다: " + roomCode));
+
+        // 메시지 조회
+        ChatMessage message = chatMessageRepository.findById(messageId)
+                .orElseThrow(() -> new EntityNotFoundException("메시지를 찾을 수 없습니다: " + messageId));
+
+        // 메시지가 해당 채팅방의 것인지 확인
+        if (!message.getChatRoom().equals(chatRoom)) {
+            throw new IllegalArgumentException("메시지가 해당 채팅방의 것이 아닙니다");
+        }
+
+        // 사용자 조회
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + userId));
+
+        // 채팅방 멤버십 조회
+        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member)
+                .orElseThrow(() -> new UnauthorizedException("채팅방에 접근 권한이 없습니다"));
+
+        if (!chatRoomMember.isActive()) {
+            throw new UnauthorizedException("채팅방을 나갔거나 강퇴되었습니다");
+        }
+
+        // 메시지 읽음 처리
+        chatRoomMember.updateLastReadMessageId(messageId);
+        chatRoomMemberRepository.save(chatRoomMember);
+
+        return true;
+    }
+
 
     @Transactional(readOnly = true)
     public Map<String, Long> getUnreadMessageCounts(String userId) {
@@ -500,6 +578,23 @@ public class ChatRoomService {
                 latestMessageTime,
                 latestMessageSenderId,
                 latestMessageSenderName
+        );
+    }
+
+    private ChatRoomMemberDto mapToChatRoomMemberDto(ChatRoomMember member) {
+
+        String profileImageUrl = null;
+        if (member.getMember().getImageUrl() != null) {
+            profileImageUrl = member.getMember().getImageUrl();
+        }
+
+        return new ChatRoomMemberDto(
+                member.getId(),
+                member.getMember().getUserId().toString(),
+                member.getMember().getName(),
+                member.getRole().name(),
+                member.getJoinedAt(),
+                profileImageUrl
         );
     }
 }
