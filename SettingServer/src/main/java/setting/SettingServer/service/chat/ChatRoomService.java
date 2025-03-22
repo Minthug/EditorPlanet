@@ -346,6 +346,49 @@ public class ChatRoomService {
         return true;
     }
 
+    @Transactional
+    public boolean updateChatRoomName(String roomCode, Long userId, String name) {
+        log.info("채팅방 이름 변경: roomCode={}, userId={}, name={}", roomCode, userId, name);
+
+
+        // 현재 로그인한 사용자 확인
+        String currentUserId = securityUtil.getCurrentMemberUsername();
+        if (!currentUserId.equals(userId)) {
+            throw new UnauthorizedException("접근 권한이 없습니다");
+        }
+
+        // 채팅방 조회
+        ChatRoom chatRoom = chatRoomRepository.findByRoomCode(roomCode)
+                .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다: " + roomCode));
+
+        // 사용자 조회
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + userId));
+
+        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member)
+                .orElseThrow(() -> new EntityNotFoundException("채팅방 멤버를 찾을 수 없습니다"));
+
+        if (!chatRoomMember.isActive()) {
+            throw new UnauthorizedException("채팅방을 나갔거나 강퇴되었습니다");
+        }
+
+        if (chatRoom.getRoomType() == ChatRoomType.DIRECT) {
+            chatRoomMember.updateNickname(name);
+            chatRoomMemberRepository.save(chatRoomMember);
+        } else {
+            if (chatRoomMember.getRole() != ChatRoomMemberRole.OWNER && chatRoomMember.getRole() != ChatRoomMemberRole.ADMIN) {
+                throw new UnauthorizedException("권한이 없습니다");
+            }
+
+            chatRoom.updateCustomName(name);
+            chatRoomRepository.save(chatRoom);
+
+            createSystemMessage(chatRoom, member.getName() + "님이 채팅방 이름을 '" + name + "'(으)로 변경 했습니다");
+        }
+
+        return true;
+    }
+
     @Transactional(readOnly = true)
     public Map<String, Long> getUnreadMessageCounts(String userId) {
         log.debug("안 읽은 메시지 수 조화: userId={]", userId);
