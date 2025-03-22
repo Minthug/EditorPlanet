@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setting.SettingServer.common.exception.UnauthorizedException;
@@ -597,4 +598,77 @@ public class ChatRoomService {
                 profileImageUrl
         );
     }
+
+    // ================= 공통 헬퍼 메서드 =================
+
+    /**
+     * 현재 로그인한 사용자의 ID를 Long 타입으로 반환
+     */
+    private Long getCurrentUserId() {
+        return Long.parseLong(securityUtil.getCurrentMemberUsername());
+    }
+
+    /**
+     * 권한 확인: 현재 사용자와 요청 사용자가 일치하는지 검증
+     */
+    private void validateCurrentUser(Long userId) {
+        Long currentUserId = getCurrentUserId();
+        if (!currentUserId.equals(userId)) {
+            throw new UnauthorizedException("권한이 없습니다");
+        }
+    }
+
+    /**
+     * RoomCode로 채팅방 조회
+     */
+    private ChatRoom getChatRoomByCode(String roomCode) {
+        return chatRoomRepository.findByRoomCode(roomCode)
+                .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다"));
+    }
+
+    /**
+     * 사용자 ID로 Member 조회
+     */
+    private Member getMemberById(Long userId) {
+        return memberRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다"));
+    }
+
+    private ChatRoomMember getChatRoomMember(ChatRoom chatRoom, Member member) {
+        return chatRoomMemberRepository.findByChatRoomAndMember(chatRoom, member)
+                .orElseThrow(() -> new UnauthorizedException("채팅방에 접근할 권한이 없습니다"));
+    }
+
+
+    /**
+     * 활성 채팅방 멤버인지 확인
+     */
+    private ChatRoomMember validateActiveMember(ChatRoom chatRoom, Member member) {
+        ChatRoomMember chatRoomMember = getChatRoomMember(chatRoom, member);
+
+        if (!chatRoomMember.isActive()) {
+            throw new UnauthorizedException("채팅방을 나갔거나 강퇴 되었습니다");
+        }
+
+        return chatRoomMember;
+    }
+
+    /**
+     * 채팅방과 사용자 ID로 활성 멤버인지 확인
+     */
+    private ChatRoomMember validateActiveMember(ChatRoom chatRoom, Long userId) {
+        Member member = getMemberById(userId);
+        return validateActiveMember(chatRoom, member);
+    }
+
+    /**
+     * RoomCode 와 사용자 ID로 채팅방과 활성 멤버 조회
+     */
+    private Pair<ChatRoom, ChatRoomMember> getChatRoomAndValidateMember(String roomCode, Long userId) {
+        ChatRoom chatRoom = getChatRoomByCode(roomCode);
+        ChatRoomMember chatRoomMember = validateActiveMember(chatRoom, userId);
+
+        return Pair.of(chatRoom, chatRoomMember);
+    }
+
 }
