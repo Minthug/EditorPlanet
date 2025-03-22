@@ -34,11 +34,14 @@ public class ChatRoomService {
     private final MemberRepository memberRepository;
     private final SecurityUtil securityUtil;
 
+
+    // ================= 비즈니스 메서드 (개선된 버전) =================
+
     @Transactional
     public ChatRoomDto createDirectChatRoom(Long userId1, Long userId2) {
         log.info("1:1 채팅방 생성 요청: user1={}, user2={}", userId1, userId2);
 
-        String currentUserId = securityUtil.getCurrentMemberUsername();
+        Long currentUserId = getCurrentUserId();
         if (!currentUserId.equals(userId1) && !currentUserId.equals(userId2)) {
             throw new UnauthorizedException("채팅방 생성 권한이 없습니다");
         }
@@ -50,11 +53,8 @@ public class ChatRoomService {
         }
 
         // 사용자 조회
-        Member user1 = memberRepository.findById(userId1)
-                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + userId1));
-
-        Member user2 = memberRepository.findById(userId2)
-                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + userId2));
+        Member user1 = getMemberById(userId1);
+        Member user2 = getMemberById(userId2);
 
         // 채팅방 생성
         ChatRoom chatRoom = ChatRoom.createDirectChat(user1, user2);
@@ -65,35 +65,26 @@ public class ChatRoomService {
     }
 
     @Transactional
-    public ChatRoomDto createGroupChatRoom(String name, String creatorId, List<Long> memberIds) {
+    public ChatRoomDto createGroupChatRoom(String name, Long creatorId, List<Long> memberIds) {
         log.info("그룹 채팅방 생성 요청: name={}, creator={}, members={}", name, creatorId, memberIds);
 
-        String currentUserId = securityUtil.getCurrentMemberUsername();
-        if (!currentUserId.equals(creatorId)) {
-            throw new UnauthorizedException("채팅방 생성 권한이 없습니다");
-        }
+        validateCurrentUser(creatorId);
 
         if (memberIds.isEmpty()) {
             throw new IllegalArgumentException("그룹 채팅방은 최소 1명 이상의 멤버가 필요합니다");
         }
 
-        Long creatorIdLong = Long.parseLong(creatorId);
-        Member creator = memberRepository.findById(creatorIdLong)
-                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다 " + creatorId));
+        Member creator = getMemberById(creatorId);
 
-
-        List<Member> members = new ArrayList<>();
-        for (Long memberId : memberIds) {
-            Member member = memberRepository.findById(memberId)
-                    .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다" + memberId));
-            members.add(member);
-        }
+        List<Member> members = memberIds.stream()
+                .map(this::getMemberById)
+                .collect(Collectors.toList());
 
         ChatRoom chatRoom = ChatRoom.createGroupChat(members, creator, name);
         chatRoomRepository.save(chatRoom);
 
         log.info("그룹 채팅방 생성 완료: {}", chatRoom.getRoomCode());
-        return mapToChatRoomDto(chatRoom, currentUserId);
+        return mapToChatRoomDto(chatRoom, creatorId);
     }
 
     @Transactional
@@ -547,8 +538,8 @@ public class ChatRoomService {
                 Collections.emptyList());
     }
 
-    private ChatRoomDto mapToChatRoomDto(ChatRoom chatRoom, String currentUserId) {
-        Member currentMember = memberRepository.findByName(currentUserId)
+    private ChatRoomDto mapToChatRoomDto(ChatRoom chatRoom, Long currentUserId) {
+        Member currentMember = memberRepository.findById(currentUserId)
                 .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + currentUserId));
 
         String displayName = chatRoom.getDisplayNameForMember(currentMember);
