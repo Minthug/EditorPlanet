@@ -448,6 +448,9 @@ public class ChatRoomService {
         }
     }
 
+    // ================= 매핑 메서드 =================
+
+
     private ChatMessageDto mapToChatMessageDto(ChatMessage message) {
 
         String senderId = null;
@@ -467,10 +470,9 @@ public class ChatRoomService {
                 message.getCreatedAt());
     }
 
-    private ChatRoomDetailDto mapToChatRoomDetailDto(ChatRoom chatRoom, Long currentUserId) {
+    private ChatRoomDetailDto mapToChatRoomDetailDto(ChatRoom chatRoom, Long userId) {
 
-        Member currentMember = memberRepository.findById(currentUserId)
-                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + currentUserId));
+        Member currentMember = getMemberById(userId);
 
         String displayName = chatRoom.getDisplayNameForMember(currentMember);
 
@@ -493,13 +495,14 @@ public class ChatRoomService {
                 Collections.emptyList());
     }
 
-    private ChatRoomDto mapToChatRoomDto(ChatRoom chatRoom, Long currentUserId) {
-        Member currentMember = memberRepository.findById(currentUserId)
-                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + currentUserId));
+    private ChatRoomDto mapToChatRoomDto(ChatRoom chatRoom, Long userId) {
+
+        Member currentMember = getMemberById(userId);
 
         String displayName = chatRoom.getDisplayNameForMember(currentMember);
 
         ChatMessage latestMessage = chatMessageRepository.findTopByChatRoomOrderByCreatedAtDesc(chatRoom).orElse(null);
+
         String latestMessageContent = null;
         LocalDateTime latestMessageTime = null;
         String latestMessageSenderId = null;
