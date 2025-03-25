@@ -161,13 +161,42 @@ public class ChatRoomController {
     }
 
 
+    @PostMapping("/{roomCode}/read-all")
+    public ResponseEntity<Boolean> markAllMessagesAsRead(@PathVariable String roomCode,
+                                                         @RequestParam Long userId) {
+        log.info("채팅방 전체 메시지 읽음 처리: roomCode={}, userId={]", roomCode, userId);
 
-    public ResponseEntity<Boolean> markMessageAsRead() {
+        boolean result = chatRoomService.markAllMessagesAsRead(roomCode, userId);
 
+        return ResponseEntity.ok(result);
     }
 
-    public ResponseEntity<Map<String, Long>> getUnreadMessageCounts() {
+    /**
+     * 메시지 읽음 처리
+     * @return
+     */
+    @GetMapping("/{roomCode}/messages/{messageId}/read")
+    public ResponseEntity<Boolean> markMessageAsRead(@PathVariable String roomCode,
+                                                     @PathVariable Long messageId,
+                                                     @RequestParam Long userId) {
+        log.debug("메시지 읽음 처리: roomCode={}, messageId={}, userId={}", roomCode, messageId, userId);
 
+        boolean result = chatRoomService.markMessageAsRead(roomCode, messageId, userId);
+
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 안 읽은 메시지 수 조회
+     * @return
+     */
+    @GetMapping("/unread")
+    public ResponseEntity<Map<String, Long>> getUnreadMessageCounts(@RequestParam Long userId) {
+        log.info("안 읽은 메시지 조회: userId={}", userId);
+
+        Map<String, Long> unreadCounts = chatRoomService.getUnreadMessageCounts(userId);
+
+        return ResponseEntity.ok(unreadCounts);
     }
 }
 

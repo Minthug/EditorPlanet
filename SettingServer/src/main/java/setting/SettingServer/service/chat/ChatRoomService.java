@@ -144,7 +144,7 @@ public class ChatRoomService {
         validateCurrentUser(userId);
         Member member = getMemberById(userId);
 
-        PageRequest pageRequest = PageRequest.of(page -1 , size, Sort.by("createdAt").descending());
+        PageRequest pageRequest = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
 
         Page<ChatRoomMember> chatRoomMembers = chatRoomMemberRepository.findByMemberAndStatusOrderByLastMessageTimestampDesc(
                 member, ChatRoomMemberStatus.ACTIVE, pageRequest);
@@ -408,6 +408,39 @@ public class ChatRoomService {
         chatRoomMember.updateLastReadMessageId(messageId);
         chatRoomMemberRepository.save(chatRoomMember);
 
+        return true;
+    }
+
+    @Transactional
+    public boolean markAllMessagesAsRead(String roomCode, Long userId) {
+        log.debug("채팅방 전체 메시지 읽음 처리: roomCode={}, userId={}", roomCode, userId);
+
+        validateCurrentUser(userId);
+
+        Pair<ChatRoom, ChatRoomMember> result = getChatRoomAndValidateMember(roomCode, userId);
+        ChatRoom chatRoom = result.getFirst();
+        ChatRoomMember chatRoomMember = result.getSecond();
+
+        List<ChatMessage> recentMessages = chatMessageRepository.findByChatRoomOrderByCreatedAtDesc(chatRoom, PageRequest.of(0, 1)).getContent();
+
+        if (recentMessages.isEmpty()) {
+            log.debug("채팅방에 메시지가 없습니다: roomCode={]", roomCode);
+            return true;
+        }
+
+        ChatMessage latestMessages = recentMessages.get(0);
+        Long latestMessageId = latestMessages.getId();
+
+        if (chatRoomMember.getLastReadMessageId() != null && chatRoomMember.getLastReadMessageId() >= latestMessageId) {
+            log.debug("이미 최신 메시지까지 읽었습니다: roomCode={}, userId={}", roomCode, userId);
+
+            return true;
+        }
+
+        chatRoomMember.updateLastReadMessageId(latestMessageId);
+        chatRoomMemberRepository.save(chatRoomMember);
+
+        log.info("채팅방 전체 메시지 읽음 처리 완료: roomCode={}, userId={}", roomCode, userId);
         return true;
     }
 

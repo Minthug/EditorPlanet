@@ -19,4 +19,8 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 
     long countByChatRoomAndIdGreaterThanAndMessageTypeNot(ChatRoom chatRoom, Long messageId, MessageType messageType);
 
+    long countByChatRoomAndIdLessThanEqualAndMessageTypeNot(ChatRoom chatRoom, Long messageId, MessageType messageType);
+
+    long countByChatRoomAndIdBetweenAndMessageTypeNot(ChatRoom chatRoom, Long startId, Long endId, MessageType messageType);
+
 }

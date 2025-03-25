@@ -50,6 +50,8 @@ public class ChatRoomMember extends BaseTime {
 
     private LocalDateTime leftAt;
 
+    private LocalDateTime lastMessageTimeStamp;
+
     @Builder
     public ChatRoomMember(ChatRoom chatRoom, Member member, ChatRoomMemberRole role, LocalDateTime joinedAt) {
         this.chatRoom = chatRoom;
@@ -77,6 +79,12 @@ public class ChatRoomMember extends BaseTime {
 
     public void updateRole(ChatRoomMemberRole role) {
         this.role = role;
+    }
+
+    public void updateLastMessageTimeStamp(LocalDateTime timeStamp) {
+        if (timeStamp != null && (this.lastMessageTimeStamp == null || timeStamp.isAfter(this.lastMessageTimeStamp))) {
+            this.lastMessageTimeStamp = timeStamp;
+        }
     }
 
     public void leave() {
