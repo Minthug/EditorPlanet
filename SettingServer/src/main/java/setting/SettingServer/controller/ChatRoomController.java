@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.*;
 import setting.SettingServer.dto.chat.*;
 import setting.SettingServer.service.chat.ChatRoomService;
 
+import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/chat/rooms")
@@ -60,6 +63,13 @@ public class ChatRoomController {
         return ResponseEntity.ok(chatRoom);
     }
 
+    /**
+     * 사용자의 채팅방 목록 조회
+     * @param userId
+     * @param page
+     * @param size
+     * @return
+     */
     @GetMapping("/list")
     public ResponseEntity<ChatRoomListDto> getChatRooms(@RequestParam Long userId,
                                                         @RequestParam(defaultValue = "1") int page,
@@ -71,6 +81,93 @@ public class ChatRoomController {
         return ResponseEntity.ok(chatRooms);
     }
 
+    /**
+     * 채팅방 메시지 조회
+     * @param roomCode
+     * @param userId
+     * @param page
+     * @param size
+     * @return
+     */
+    @GetMapping("/{roomCode}/messages")
+    public ResponseEntity<ChatMessageListDto> getChatMessages(@PathVariable String roomCode,
+                                                              @RequestParam Long userId,
+                                                              @RequestParam(defaultValue = "1") int page,
+                                                              @RequestParam(defaultValue = "50") int size) {
+        log.info("채팅 메시지 조회: roomCode={}, userId={}, page={}, size={}", roomCode, userId, page, size);
 
+        ChatMessageListDto messages = chatRoomService.getChatMessages(roomCode, userId, page, size);
+        return ResponseEntity.ok(messages);
+    }
+
+    /**
+     * 채팅방 멤버 초대
+     * @param roomCode
+     * @param request
+     * @return
+     */
+    @PostMapping("/{roomCode}/invite")
+    public ResponseEntity<Boolean> inviteMember(@PathVariable String roomCode,
+                                                @RequestBody @Valid InviteMemberRequest request) {
+        log.info("채팅방 멤버 초대: roomCode={}, request={}", roomCode, request);
+
+        boolean result = chatRoomService.inviteMember(roomCode,
+                request.inviterId(),
+                request.inviteeId());
+
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 채팅방 나가기
+     * @return
+     */
+    @PostMapping("/{roomCode}/leave")
+    public ResponseEntity<Boolean> leaveChatRoom(@PathVariable String roomCode,
+                                                 @RequestParam Long userId) {
+        log.info("채팅방 나가기: roomCode={}, userId={}", roomCode, userId);
+
+        boolean result = chatRoomService.leaveChatRoom(roomCode, userId);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 채팅방 이름 변경
+     * @return
+     */
+    @PatchMapping("/{roomCode}/name")
+    public ResponseEntity<Boolean> updateChatRoomName(@PathVariable String roomCode,
+                                                      @RequestBody @Valid UpdateChatRoomNameRequest request) {
+        log.info("채팅방 이름 변경: roomCode={}, request={}", roomCode, request);
+
+        boolean result = chatRoomService.updateChatRoomName(roomCode,
+                request.userId(),
+                request.name());
+
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 채팅방 참여자 목록 조회
+     * @return
+     */
+    @GetMapping("/{roomCode}/members")
+    public ResponseEntity<List<ChatRoomMemberDto>> getChatRoomMembers(@PathVariable String roomCode,
+                                                                      @RequestParam Long userId) {
+        log.info("채팅방 멤버 목록 조회: roomCode={}, userId={}", roomCode, userId);
+        List<ChatRoomMemberDto> memberDtos = chatRoomService.getChatRoomMember(roomCode, userId);
+
+        return ResponseEntity.ok(memberDtos);
+    }
+
+
+
+    public ResponseEntity<Boolean> markMessageAsRead() {
+
+    }
+
+    public ResponseEntity<Map<String, Long>> getUnreadMessageCounts() {
+
+    }
 }
 
