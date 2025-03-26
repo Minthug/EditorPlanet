@@ -108,7 +108,7 @@ public class ChatRoomService {
 
         ChatRoomDetailDto detailDto = mapToChatRoomDetailDto(chatRoom, userId);
 
-        Page<ChatMessage> recentMessagePage = chatMessageRepository.findByChatRoomOrderByCreatedAtDesc(chatRoom, PageRequest.of(0, 20));
+        Page<ChatMessage> recentMessagePage = chatMessageRepository.findByChatRoomOrderBySentAtDesc(chatRoom, PageRequest.of(0, 20));
 
         List<ChatMessage> recentMessages = recentMessagePage.getContent();
 
@@ -180,7 +180,7 @@ public class ChatRoomService {
 
         PageRequest pageRequest = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
 
-        Page<ChatMessage> messagePage = chatMessageRepository.findByChatRoomOrderByCreatedAtDesc(chatRoom, pageRequest);
+        Page<ChatMessage> messagePage = chatMessageRepository.findByChatRoomOrderBySentAtDesc(chatRoom, pageRequest);
 
         // 메시지 매핑
         List<ChatMessageDto> messageDtos = messagePage.getContent().stream()
@@ -421,7 +421,7 @@ public class ChatRoomService {
         ChatRoom chatRoom = result.getFirst();
         ChatRoomMember chatRoomMember = result.getSecond();
 
-        List<ChatMessage> recentMessages = chatMessageRepository.findByChatRoomOrderByCreatedAtDesc(chatRoom, PageRequest.of(0, 1)).getContent();
+        List<ChatMessage> recentMessages = chatMessageRepository.findByChatRoomOrderBySentAtDesc(chatRoom, PageRequest.of(0, 1)).getContent();
 
         if (recentMessages.isEmpty()) {
             log.debug("채팅방에 메시지가 없습니다: roomCode={]", roomCode);
@@ -534,7 +534,7 @@ public class ChatRoomService {
 
         String displayName = chatRoom.getDisplayNameForMember(currentMember);
 
-        ChatMessage latestMessage = chatMessageRepository.findTopByChatRoomOrderByCreatedAtDesc(chatRoom).orElse(null);
+        ChatMessage latestMessage = chatMessageRepository.findTopByChatRoomOrderBySentAtDesc(chatRoom).orElse(null);
 
         String latestMessageContent = null;
         LocalDateTime latestMessageTime = null;

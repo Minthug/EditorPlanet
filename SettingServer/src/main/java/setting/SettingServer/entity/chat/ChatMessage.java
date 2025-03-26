@@ -10,7 +10,9 @@ import setting.SettingServer.entity.Member;
 import java.time.LocalDateTime;
 
 @Entity
+@Builder
 @Getter
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ChatMessage extends BaseTime {
 
@@ -33,11 +35,8 @@ public class ChatMessage extends BaseTime {
     @Column(nullable = false)
     private MessageType messageType;
 
-    @Builder
-    public ChatMessage(ChatRoom chatRoom, Member sender, String content, MessageType messageType) {
-        this.chatRoom = chatRoom;
-        this.sender = sender;
-        this.content = content;
-        this.messageType = messageType;
-    }
+    @CreatedDate
+    @Column(name = "sent_at", nullable = false, updatable = false)
+    private LocalDateTime sentAt;
+
 }

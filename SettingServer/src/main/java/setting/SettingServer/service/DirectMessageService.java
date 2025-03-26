@@ -81,7 +81,7 @@ public class DirectMessageService {
             DirectMessage latestMessage = directMessageRepository.findLatestMessage(userId, contactId, PageRequest.of(0, 1))
                     .stream().findFirst().orElse(null);
 
-            long unreadCount = directMessageRepository.countByReceiverIdAndSenderIdAndIsReadFalseAndIsDeletedByReceiverFalse(userId, contactId);
+            long unreadCount = directMessageRepository.countByReceiver_IdAndSender_IdAndIsReadFalseAndIsDeletedByReceiverFalse(userId, contactId);
 
             return ChatContactResponse.builder()
                     .contactId(contactId)
@@ -102,7 +102,7 @@ public class DirectMessageService {
             throw new EntityNotFoundException("회원을 찾을 수 없습니다.(ID: " + memberId + ")");
         }
 
-        return directMessageRepository.findByReceiverIdOrderByCreatedAtDesc(memberId, pageable)
+        return directMessageRepository.findByReceiver_IdOrderBySentAtDesc(memberId, pageable)
                 .map(DirectMessageResponse::from);
     }
 
@@ -116,7 +116,7 @@ public class DirectMessageService {
 
             }
 
-        return directMessageRepository.findBySenderIdOrderByCreatedAtDesc(memberId, pageable)
+        return directMessageRepository.findBySender_IdOrderBySentAtDesc(memberId, pageable)
                 .map(DirectMessageResponse::from);
     }
 
@@ -218,6 +218,6 @@ public class DirectMessageService {
             throw new EntityNotFoundException("회원을 찾을 수 없습니다" + receiverId);
         }
 
-        return directMessageRepository.countByReceiverIdAndIsReadFalseAndIsDeletedByReceiverFalse(receiverId);
+        return directMessageRepository.countByReceiver_IdAndIsReadFalseAndIsDeletedByReceiverFalse(receiverId);
     }
 }
