@@ -17,6 +17,4 @@ public record ReferenceCreateRequest(Long memberId, String title, String thumbna
                 MemberResponse.of(reference.getAuthor())
         );
     }
-
-
 }
