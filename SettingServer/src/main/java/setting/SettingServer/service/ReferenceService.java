@@ -9,13 +9,20 @@ import org.springframework.transaction.annotation.Transactional;
 import setting.SettingServer.common.exception.UnauthorizedException;
 import setting.SettingServer.config.SecurityUtil;
 import setting.SettingServer.entity.Member;
+import setting.SettingServer.entity.Rating;
 import setting.SettingServer.entity.Reference;
 import setting.SettingServer.repository.MemberRepository;
+import setting.SettingServer.repository.RatingRepository;
 import setting.SettingServer.repository.ReferenceRepository;
+import setting.SettingServer.repository.ScoreCount;
 import setting.SettingServer.service.request.ReferenceCreateRequest;
 import setting.SettingServer.service.request.ReferenceUpdateRequest;
+import setting.SettingServer.service.response.ReferenceDetailResponse;
 import setting.SettingServer.service.response.ReferenceListResponse;
 import setting.SettingServer.service.response.ReferenceResponse;
+
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +30,7 @@ public class ReferenceService {
 
     private final ReferenceRepository referenceRepository;
     private final MemberRepository memberRepository;
+    private final RatingRepository ratingRepository;
     private final SecurityUtil securityUtil;
 
     /**
@@ -96,6 +104,23 @@ public class ReferenceService {
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 게시글입니다"));
 
         return ReferenceResponse.from(reference);
+    }
+
+    @Transactional(readOnly = true)
+    public ReferenceDetailResponse getReferenceWithRating(Long referenceId) {
+        Reference reference = referenceRepository.findById(referenceId)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 게시글 입니다"));
+
+        reference.incrementViewCount();
+
+        Long currentUserId = getCurrentUserId();
+        Integer userRating = ratingRepository.findByReferenceIdAndMemberId(referenceId, currentUserId)
+                .map(Rating::getScore)
+                .orElse(null);
+
+        List<ScoreCount> distribution = ratingRepository.getScoreDistribution(referenceId);
+
+        return ReferenceDetailResponse.fromWithRating(reference, userRating, distribution);
     }
 
     /**
