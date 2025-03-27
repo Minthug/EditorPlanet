@@ -21,8 +21,11 @@ import setting.SettingServer.service.response.ReferenceDetailResponse;
 import setting.SettingServer.service.response.ReferenceListResponse;
 import setting.SettingServer.service.response.ReferenceResponse;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -106,6 +109,11 @@ public class ReferenceService {
         return ReferenceResponse.from(reference);
     }
 
+    /**
+     * 참고 자료 상세 조회(별점 포함)
+     * @param referenceId
+     * @return
+     */
     @Transactional(readOnly = true)
     public ReferenceDetailResponse getReferenceWithRating(Long referenceId) {
         Reference reference = referenceRepository.findById(referenceId)
@@ -121,6 +129,41 @@ public class ReferenceService {
         List<ScoreCount> distribution = ratingRepository.getScoreDistribution(referenceId);
 
         return ReferenceDetailResponse.fromWithRating(reference, userRating, distribution);
+    }
+
+    /**
+     * 사용자가 평가한 참고 자료 목록 조회
+     * @param pageable
+     * @return
+     */
+    @Transactional(readOnly = true)
+    public Page<ReferenceListResponse> getUserRatedReferences(Pageable pageable) {
+        Long currentUserId = getCurrentUserId();
+        return referenceRepository.findByRatingsGivenByUser(currentUserId, pageable)
+                .map(ReferenceListResponse::from);
+    }
+
+    /**
+     * 인기 있는 참고 자료 목록 조회(평점순)
+     * @param pageable
+     * @return
+     */
+    @Transactional(readOnly = true)
+    public Page<ReferenceListResponse> getPopularReferences(Pageable pageable) {
+        return referenceRepository.findByIsDeletedFalseOrderByAverageRatingDesc(pageable)
+                .map(ReferenceListResponse::from);
+    }
+
+    /**
+     * 최근 인기 있는 참고 자료 목록 조회 (최근 일주일 평점 + 조회수 기준)
+     * @return
+     */
+    @Transactional(readOnly = true)
+    public List<ReferenceListResponse> getRecentPopularReferences() {
+        LocalDateTime oneWeekAge = LocalDateTime.now().minusWeeks(1);
+        return referenceRepository.findRecentPopularReferences(oneWeekAge, 10).stream()
+                .map(ReferenceListResponse::from)
+                .collect(Collectors.toList());
     }
 
     /**
