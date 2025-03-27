@@ -72,10 +72,9 @@ public class ReferenceService {
     /**
      * 참고 자료 삭제
      * @param referenceId
-     * @param memberId
      */
     @Transactional
-    public void deleteReference(Long referenceId, Long memberId) {
+    public void deleteReference(Long referenceId) {
 
         Reference reference = referenceRepository.findById(referenceId)
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 게시글입니다"));

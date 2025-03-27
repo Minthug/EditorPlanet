@@ -54,11 +54,19 @@ public class ReferenceController {
         referenceService.updateReference(referenceId, request);
         return ResponseEntity.noContent().build();
     }
-
+    /**
+     * 참고 자료 삭제
+     * @param referenceId
+     * @return
+     */
     @DeleteMapping("/{referenceId}")
-    public ResponseEntity<Void> deleteReference() {
+    public ResponseEntity<Void> deleteReference(@PathVariable Long referenceId,
+                                                ) {
+        log.info("참고 자료 삭제 요청: referenceId={}", referenceId);
 
-        return ;
+        referenceService.deleteReference(referenceId);
+
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping
@@ -71,5 +79,14 @@ public class ReferenceController {
 
     }
 
+    @GetMapping("/members/{memberId}")
+    public ResponseEntity<Page<ReferenceListResponse>> getMemberReferenceList() {
+
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<Page<ReferenceListResponse>> getMyReferenceList() {
+
+    }
 
 }
