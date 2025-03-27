@@ -3,6 +3,7 @@ package setting.SettingServer.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.coyote.Response;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -12,10 +13,12 @@ import setting.SettingServer.config.SecurityUtil;
 import setting.SettingServer.service.ReferenceService;
 import setting.SettingServer.service.request.ReferenceCreateRequest;
 import setting.SettingServer.service.request.ReferenceUpdateRequest;
+import setting.SettingServer.service.response.ReferenceDetailResponse;
 import setting.SettingServer.service.response.ReferenceListResponse;
 import setting.SettingServer.service.response.ReferenceResponse;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -62,8 +65,7 @@ public class ReferenceController {
      * @return
      */
     @DeleteMapping("/{referenceId}")
-    public ResponseEntity<Void> deleteReference(@PathVariable Long referenceId,
-                                                ) {
+    public ResponseEntity<Void> deleteReference(@PathVariable Long referenceId) {
         log.info("참고 자료 삭제 요청: referenceId={}", referenceId);
 
         referenceService.deleteReference(referenceId);
@@ -72,18 +74,36 @@ public class ReferenceController {
     }
 
     /**
-     * 참고 자료 조회
+     * 참고 자료 조회 (V2 별점 추가)
      * @param referenceId
      * @return
      */
     @GetMapping("/{referenceId}")
-    public ResponseEntity<ReferenceResponse> getReference(@PathVariable Long referenceId) {
+    public ResponseEntity<ReferenceDetailResponse> getReference(@PathVariable Long referenceId) {
         log.info("참고 자료 상세 조회 요청: referenceId={}", referenceId);
 
-        ReferenceResponse reference = referenceService.getReference(referenceId);
+        ReferenceDetailResponse reference = referenceService.getReferenceWithRating(referenceId);
         return ResponseEntity.ok(reference);
     }
 
+    @GetMapping("/popular")
+    public ResponseEntity<Page<ReferenceListResponse>> getPopularReferences(@PageableDefault(size = 20) Pageable pageable) {
+
+        Page<ReferenceListResponse> references = referenceService.getPopularReferences(pageable);
+        return ResponseEntity.ok(references);
+    }
+
+    @GetMapping("/trending")
+    public ResponseEntity<List<ReferenceListResponse>> getTrendingReferences() {
+        List<ReferenceListResponse> references = referenceService.getRecentPopularReferences();
+        return ResponseEntity.ok(references);
+    }
+
+//    @GetMapping("/tags/{tagId}")
+//    public ResponseEntity<Page<ReferenceListResponse>> getReferencesByTag(@PathVariable Long tagId,
+//                                                                          @PageableDefault(size = 20) Pageable pageable) {
+//
+//    }
 
     /**
      * 참고 자료 목록 조회

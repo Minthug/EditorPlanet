@@ -196,6 +196,10 @@ public class ReferenceService {
         return getMemberReferenceList(currentUserId, pageable);
     }
 
+//    @Transactional(readOnly = true)
+//    public Page<ReferenceListResponse> getReferencesByTag(Long tagId, Pageable pageable) {
+//
+//    }
 
     // ================= 공통 헬퍼 메서드 =================
 
