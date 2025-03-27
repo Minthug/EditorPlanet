@@ -117,6 +117,17 @@ public class ReferenceService {
                 .map(ReferenceListResponse::from);
     }
 
+    /**
+     * 본인 참고 자료 목록 조회
+     * @param pageable
+     * @return
+     */
+    @Transactional(readOnly = true)
+    public Page<ReferenceListResponse> getMyReferenceList(Pageable pageable) {
+        Long currentUserId = getCurrentUserId();
+        return getMemberReferenceList(currentUserId, pageable);
+    }
+
 
     // ================= 공통 헬퍼 메서드 =================
 

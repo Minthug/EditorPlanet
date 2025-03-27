@@ -4,6 +4,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import setting.SettingServer.config.SecurityUtil;
@@ -69,24 +71,59 @@ public class ReferenceController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping
-    public ResponseEntity<ReferenceResponse> getReference() {
+    /**
+     * 참고 자료 조회
+     * @param referenceId
+     * @return
+     */
+    @GetMapping("/{referenceId}")
+    public ResponseEntity<ReferenceResponse> getReference(@PathVariable Long referenceId) {
+        log.info("참고 자료 상세 조회 요청: referenceId={}", referenceId);
 
+        ReferenceResponse reference = referenceService.getReference(referenceId);
+        return ResponseEntity.ok(reference);
     }
 
-    @GetMapping
-    public ResponseEntity<Page<ReferenceListResponse>> getReferenceList() {
 
+    /**
+     * 참고 자료 목록 조회
+     * @param pageable
+     * @return
+     */
+    @GetMapping
+    public ResponseEntity<Page<ReferenceListResponse>> getReferenceList(@PageableDefault(size = 20) Pageable pageable) {
+        log.info("참고 자료 목록 조회 요청: pageable={}", pageable);
+
+        Page<ReferenceListResponse> responses = referenceService.getReferenceList(pageable);
+        return ResponseEntity.ok(responses);
     }
 
+    /**
+     * 회원별 참고 자료 조회 요청
+     * @param memberId
+     * @param pageable
+     * @return
+     */
     @GetMapping("/members/{memberId}")
-    public ResponseEntity<Page<ReferenceListResponse>> getMemberReferenceList() {
+    public ResponseEntity<Page<ReferenceListResponse>> getMemberReferenceList(@PathVariable Long memberId,
+                                                                              @PageableDefault(size = 20) Pageable pageable) {
+        log.info("회원별 참고 자료 목록 조회 요청: memberId={}, pageable={}", memberId, pageable);
 
+        Page<ReferenceListResponse> references = referenceService.getMemberReferenceList(memberId, pageable);
+
+        return ResponseEntity.ok(references);
     }
 
+    /**
+     * 내가 등록한 참고 자료 조회 요청
+     * @param pageable
+     * @return
+     */
     @GetMapping("/me")
-    public ResponseEntity<Page<ReferenceListResponse>> getMyReferenceList() {
+    public ResponseEntity<Page<ReferenceListResponse>> getMyReferenceList(@PageableDefault(size = 20) Pageable pageable) {
+        log.info("내 참고 자료 목록 조회 요청: pageable={}", pageable);
 
+        Page<ReferenceListResponse> references = referenceService.getMyReferenceList(pageable);
+        return ResponseEntity.ok(references);
     }
-
 }
