@@ -3,6 +3,7 @@ package setting.SettingServer.service;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,8 +24,6 @@ import setting.SettingServer.service.response.ReferenceResponse;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @Service
@@ -161,7 +160,9 @@ public class ReferenceService {
     @Transactional(readOnly = true)
     public List<ReferenceListResponse> getRecentPopularReferences() {
         LocalDateTime oneWeekAge = LocalDateTime.now().minusWeeks(1);
-        return referenceRepository.findRecentPopularReferences(oneWeekAge, 10).stream()
+
+        PageRequest pageRequest = PageRequest.of(0, 20);
+        return referenceRepository.findRecentPopularReferences(oneWeekAge, pageRequest).stream()
                 .map(ReferenceListResponse::from)
                 .collect(Collectors.toList());
     }

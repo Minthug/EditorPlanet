@@ -3,7 +3,6 @@ package setting.SettingServer.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.coyote.Response;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -15,7 +14,6 @@ import setting.SettingServer.service.request.ReferenceCreateRequest;
 import setting.SettingServer.service.request.ReferenceUpdateRequest;
 import setting.SettingServer.service.response.ReferenceDetailResponse;
 import setting.SettingServer.service.response.ReferenceListResponse;
-import setting.SettingServer.service.response.ReferenceResponse;
 
 import java.net.URI;
 import java.util.List;
@@ -75,7 +73,7 @@ public class ReferenceController {
 
     /**
      * 참고 자료 조회 (V2 별점 추가)
-     * @param referenceId
+//     * @param referenceId
      * @return
      */
     @GetMapping("/{referenceId}")

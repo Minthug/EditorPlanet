@@ -29,7 +29,7 @@ public interface ReferenceRepository extends JpaRepository<Reference, Long> {
 
     @Query("SELECT r FROM Reference r WHERE r.createdAt >= :since AND r.isDeleted = false " +
             "ORDER BY (r.averageRating * 10 + r.viewCount / 100) DESC")
-    List<Reference> findRecentPopularReferences(@Param("since")LocalDateTime since, @Param("limit") int limit);
+    List<Reference> findRecentPopularReferences(@Param("since")LocalDateTime since, Pageable pageable);
 
     @Query("SELECT r FROM Reference r JOIN r.referenceTags rt " +
             "WHERE rt.tag.id = :tagId AND r.isDeleted = false")
